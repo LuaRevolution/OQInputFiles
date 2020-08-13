@@ -285,7 +285,7 @@ def createXML(logicTreeObj, prettyPrint=True):
 
         if logicTreeObj.file_type == "SMLT":
             for a,b in v.branchSetList.items():
-                curBs = ET.SubElement(curBl, "logicTreeBranchSet", {"uncertaintyType": b.uncertaintyType,"branchSetID": b.bsId}) # curBs -> current branchset.
+                curBs = ET.SubElement(curBl, "logicTreeBranchSet", {"uncertaintyType": b.uncertaintyType,"branchSetID": b.realBsId}) # curBs -> current branchset.
                 for x,z in b.branchList.items():
                     curBr = ET.SubElement(curBs, "logicTreeBranch", {"branchID": z.realBId}) # curBr -> current branch
                     cUncMod = ET.SubElement(curBr, "uncertaintyModel", {}) # cUncMod -> current uncertaintyModel

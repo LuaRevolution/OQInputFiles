@@ -16,11 +16,13 @@ class Entry:
     # - type (specify whether the entry should be next to the label or on the next line and cover the window) -> windowObject.ENTRY or windowObject.FULL_ENTRY
     # - stringvar (variable that the entry uses to hold it's value)
     # - defaultval (default text of the entry)
+    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance)
+    # - entry_config (pass tkinter entry config in a dictionary directly to the tkinter instance)
     # methods:
     # - destroy() -> deletes label and entry, and self
     # - get() -> returns the value of the entry
     # - set(str) -> sets the value of the entry to str
-    def __init__(self,master,type=None,label="Default",stringvar=None,defaultval=None,pady=3):
+    def __init__(self,master,type=None,label="Default",stringvar=None,defaultval=None,pady=0,entry_config={},label_config={}):
         # declarations
         if master == None:
             return 'No window'
@@ -44,8 +46,10 @@ class Entry:
         elif self.type == windowObject.FULL_ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
             self.Label.pack(pady=pady)
-            self.Entry = tk.Entry(self.Frame,variable=stringvar)
-            self.Entry.pack(fill=tk.BOTH,expand=True,pady=pady)
+            self.Entry = tk.Entry(self.Frame,variable=stringvar,width=58,justify=tk.CENTER)
+            self.Entry.pack(fill=tk.X,expand=True,pady=pady)
+        self.Label.configure(**label_config)
+        self.Entry.configure(**entry_config)
         self.Frame.pack()
     def __repr__(self):
         return self.get()
@@ -58,7 +62,10 @@ class Entry:
     def get(self):
         return self.Entry.get()
     def set(self,str):
-        self.Entry.set(str)
+        self.stringvar.set(str)
+        self.Entry.delete(0,tk.END)
+        self.Entry.insert(0,str)
+        print(self.stringvar.get())
 class Dropdown:
     # vital arguments:
     # - master (container)
@@ -70,6 +77,8 @@ class Dropdown:
     # - stringvar (variable that the dropdown changes)
     # - defaultval (default value for the dropdown)
     # - noLabel (specify whether or not to have no label, just dropdown)
+    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance)
+    # - dropdown_config (pass tkinter optionmenu config in a dictionary directly to the tkinter instance)
     # unimportant arguments:
     # - packType (pack "side" argument for the label and dropdown)
     # - framePackType (pack "side" argument for the frame holding the label and dropdown)
@@ -77,7 +86,7 @@ class Dropdown:
     # methods:
     # - destroy() -> deletes label and dropdown, and self
     # - get() -> returns the value of the entry
-    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,framePackType=None,type=windowObject.DROPDOWN):
+    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,framePackType=None,type=windowObject.DROPDOWN,label_config={},dropdown_config={}):
         # declarations
 
         if master == None:
@@ -114,9 +123,10 @@ class Dropdown:
             self.Frame.pack()
         else:
             self.Frame.pack(side=framePackType)
-        self.OptionMenu = tk.OptionMenu(self.Frame,self.stringvar,*self.options,command=command)
+        self.OptionMenu = tk.OptionMenu(self.Frame,self.stringvar,*self.options,command=command,**dropdown_config)
         if self.noLabel == False:
             self.Label = tk.Label(self.Frame,text=self.label)
+            self.Label.configure(**label_config)
             if type == windowObject.DROPDOWN:
                 self.Label.pack(side=self.packType,pady=pady)
             elif type == windowObject.FULL_DROPDOWN:
@@ -137,7 +147,7 @@ class Dropdown:
             self.OptionMenu.destroy()
         del self
     def get(self):
-        return self.OptionMenu.get()
+        return self.stringvar.get()
 class AutoObject:
     # notes: any other arguments are passed directly to the desired object (ex "label" argument will be passed to the Entry object)
     # vital arguments:

@@ -811,6 +811,7 @@ class LtEditor:
         top = tk.Toplevel(self.master)
         top.title("Edit a branchingLevel")
         self.placeInCenter(300,99,window=top)
+        top.resizable(False,False)
         #frames
         targetFrame = tk.Frame(top)
         targetFrame.pack()
@@ -868,37 +869,46 @@ class LtEditor:
         #gui
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].title("Edit a branchSet")
+        self.windowOptions["top"].resizable(False,False)
         if file_type == "Source Model Logic Tree":
             self.placeInCenter(300,149,window=self.windowOptions["top"])
         else:
             self.placeInCenter(300,200,window=self.windowOptions["top"])
 
-
-        # frames
+        # declarations
         self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
         self.windowOptions["dropdownFrame"].pack()
         self.windowOptions["optionFrame"] = tk.Frame(self.windowOptions["top"])
         self.windowOptions["optionFrame"].pack()
-        #dropdowns
+
         self.windowOptions["bsIdDropdown"] = None
-        # blid dropdown
-        def createBsIdDropdown(blId):
+        self.windowOptions["bsIdDropdown"] = None
+        self.windowOptions["bsIdO"] = None
+        self.windowOptions["uncertaintyTypeO"] = None
+        self.windowOptions["attrO"] = None
+        # dropdowns
+        def createBsIdDropdown(blId): # bound to blIdDropdown
             if self.windowOptions["bsIdDropdown"] is not None:
                 self.windowOptions["bsIdDropdown"].destroy()
             bl = self.logic_tree.getBranchingLevel(blId)
             bsIdOptions = []
             for i,v in bl.branchSetList.copy().items():
                 bsIdOptions.append(i)
-            self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT)
+            self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT,command=bsIdSelected)
+        def bsIdSelected(bsId): # bound to bsIdDropdown
+            bl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdDropdown"].get())
+            bs = bl.getBranchSet(bsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
+            if self.windowOptions["bsIdO"] is not None:
+                self.windowOptions["bsIdO"].set(bs.realBsId)
+            if self.windowOptions["uncertaintyTypeO"] is not None:
+                self.windowOptions["uncertaintyTypeO"].set(bs.uncertaintyType)
+            if self.windowOptions["attrO"] is not None:
+                self.windowOptions["attrO"].set(bs.applyToTectonicRegionType)
         self.windowOptions["blIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="blId:",options=blIdOptions,defaultval="...",command=createBsIdDropdown,framePackType=tk.LEFT)
-        # bsid dropdown
-        def bsIdSelected(bsId):
-            pass
         self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT)
         # options
         self.windowOptions["bsIdO"] = wim.Entry(self.windowOptions["optionFrame"], label="bsId:")
         self.windowOptions["uncertaintyTypeO"] = wim.Entry(self.windowOptions["optionFrame"], label="uncertaintyType:",type=wim.windowObject.FULL_ENTRY)
-        self.windowOptions["attrO"] = None
         if file_type == "GMPE":
             self.windowOptions["attrO"] = wim.Entry(self.windowOptions["optionFrame"], label="applyToTectonicRegionType:",type=wim.windowObject.FULL_ENTRY)
         def submit():
@@ -909,9 +919,9 @@ class LtEditor:
             if file_type == "GMPE":
                 bs.applyToTectonicRegionType = self.windowOptions["attrO"].get()
             self.outputLogicTree()
+            self.windowOptions["top"].destroy()
         addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Done",command=submit)
-
-
+        self.windowOptions["top"].geometry("")
     def editBr(self,file_type=None): # creates prompt to edit a branch
         pass
 
