@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nrml xmlns="http://openquake.org/xmlns/nrml/0.4" xmlns:gml="http://www.opengis.net/gml">
+   <logicTree logicTreeID="lt1">
+      <logicTreeBranchingLevel branchingLevelID="bl1">
+         <logicTreeBranchSet applyToTectonicRegionType="Active Shallow Fault" branchSetID="bs1" uncertaintyType="gmpeModel">
+            <logicTreeBranch branchSetID="b11">
+               <uncertaintyModel gmpe_table="../gm_tables/WcrustFRjb_low_clC.hdf5">GMPETable</uncertaintyModel>
+               <uncertaintyWeight>0.2</uncertaintyWeight>
+            </logicTreeBranch>
+            <logicTreeBranch branchSetID="b12">
+               <uncertaintyModel gmpe_table="../gm_tables/WcrustFRjb_low_clC.hdf5">GMPETable</uncertaintyModel>
+               <uncertaintyWeight>0.8</uncertaintyWeight>
+            </logicTreeBranch>
+         </logicTreeBranchSet>
+      </logicTreeBranchingLevel>
+      <logicTreeBranchingLevel branchingLevelID="bl2">
+         <logicTreeBranchSet applyToTectonicRegionType="Subduction Interface" branchSetID="bs2" uncertaintyType="gmpeModel">
+            <logicTreeBranch branchSetID="b21">
+               <uncertaintyModel gmpe_table="../gm_tables/WcrustFRjb_low_clC.hdf5">GMPETable</uncertaintyModel>
+               <uncertaintyWeight>0.2</uncertaintyWeight>
+            </logicTreeBranch>
+         </logicTreeBranchSet>
+      </logicTreeBranchingLevel>
+   </logicTree>
+</nrml>
