@@ -7,9 +7,11 @@ import tkinter as tk
 #import configparser
 from tkinter import filedialog
 from PIL import ImageTk, Image
-from enum import Enum
+import enum
 import os
+#own imports
 import ltc
+import windowItemModule as wim
 #---core variables---
 root = tk.Tk()
 #config = configparser.ConfigParser()
@@ -18,48 +20,6 @@ def switchFileTypes(ltEditorObj):
     ltEditorObj.__del__(wclosed=False)
     newLte = LtEditor(root)
 #---classes / gui---
-# -for createWindow function in ltEditor
-class windowObject(Enum): # enums for types of objects in the createwindow function
-    ENTRY = 1
-    FULL_ENTRY = 2
-    DROPDOWN = 3
-    AUTO_ENTRY = 4
-    AUTO_FULL_ENTRY = 5
-    AUTO_DROPDOWN = 6
-class windowEntry: # for createWindow function in ltEditor
-    def __init__(self,master,label="Default",type=None,stringvar=None,defaultval=None):
-        if type == None:
-            self.type = windowObject.ENTRY
-        else:
-            self.type = type
-        if stringvar == None:
-            self.stringvar = tk.StringVar()
-        else:
-            self.stringvar = stringvar
-        self.auto=False
-        self.master = master
-        self.label = label
-        self.Frame = tk.Frame(self.master)
-        self.Frame.pack()
-        if type == windowObject.ENTRY:
-            self.Label = tk.Label(self.Frame,text=self.label)
-            self.Label.pack(side=tk.LEFT)
-            self.Entry = tk.Entry(self.Frame,variable=stringvar)
-            self.Entry.pack(side=tk.LEFT)
-        elif type == windowObject.FULL_ENTRY:
-            self.Label = tk.Label(self.Frame,text=self.label)
-            self.Label.pack()
-            self.Entry = tk.Entry(self.Frame,variable=stringvar)
-            self.Entry.pack(fill=tk.BOTH,expand=True)
-    def __repr__(self):
-        return self.Frame
-    def __del__(self):
-        for k,i in self.Frame.winflo_children().copy.items():
-            if i is not None:
-                i.Destroy()
-    def get(self):
-        return self.Entry.get()
-# -actual program
 class LtEditor:
     #---event methods---
     def __init__(self, master, *args, **kwargs):
@@ -906,49 +866,12 @@ class LtEditor:
         if file_type is None:
             file_type = self.file_type
 
-        self.windowOptions={}
-        self.windowOptions["tBlId"] = tk.StringVar()
-        self.windowOptions["tBlIdDropdown"] = None
-        self.windowOptions["tBsId"] = tk.StringVar()
-        self.windowOptions["tBsIdDropdown"] = None
-        self.windowOptions["nBsId"] = tk.StringVar()
-        self.windowOptions["nBsIdBox"] = None
-        self.windowOptions["uncertaintyType"] = tk.StringVar()
-        self.windowOptions["uncertaintyTypeBox"] = None
-        self.windowOptions["applyToTectonicRegionType"] = tk.StringVar()
-        self.windowOptions["applyToTectonicRegionTypeBox"] = None
         #gui
         top = tk.Toplevel(self.master)
         top.title("Edit a branchSet")
         self.placeInCenter(300,155,window=top)
 
-        #frames & formatting
-        tk.Label(text="Select a specific branchSet from a branchingLevel").pack(side=tk.TOP)
-        targetFrame = tk.Frame(top)
-        targetFrame.pack()
-        targetBlFrame = tk.Frame(targetFrame)
-        targetBlFrame.pack(side=tk.LEFT)
-        targetBsFrame = tk.Frame(targetFrame)
-        targetBsFrame.pack(side=tk.LEFT)
-
-        nBsFrame= tk.Frame(top)
-        nBsFrame.pack()
-
-        tk.Label(text="Edit").pack()
-        newFrame = tk.Frame(top)
-        newFrame.pack()
-        utFrame = tk.Frame(top)
-        utFrame.pack()
-        attrFrame = None
-        if file_type == "GMPE":
-            attrFrame = tk.Frame(top)
-            attrFrame.pack(top)
-
-        #targetBlFrame items
-        tk.Label(targetBlFrame,text="blId:").pack(side=tk.LEFT)
-        self.windowOptions["tBlId"].set("...")
-        self.windowOptions["tBlIdDropdown"] = tk.OptionMenu(targetBlFrame, self.windowOptions["tBlId"],*blIdOptions)
-        self.windowOptions["tBlIdDropdown"].pack(side=tk.LEFT)
+        test = wim.AutoEntry(top,label="blId:")
 
     def editBr(self,file_type=None): # creates prompt to edit a branch
         pass
