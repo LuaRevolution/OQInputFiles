@@ -46,7 +46,7 @@ class Entry:
     def get(self):
         return self.Entry.get()
 class Dropdown:
-    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,type=windowObject.DROPDOWN):
+    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,type=windowObject.DROPDOWN,framePackType=None):
         # declarations
         if master == None:
             return 'No window'
@@ -73,7 +73,10 @@ class Dropdown:
 
         #gui
         self.Frame = tk.Frame(self.master)
-        self.Frame.pack()
+        if framePackType == None:
+            self.Frame.pack()
+        else:
+            self.Frame.pack(side=framePackType)
         self.OptionMenu = tk.OptionMenu(self.Frame,self.stringvar,*self.options,command=command)
         if self.noLabel == False:
             self.Label = tk.Label(self.Frame,text=self.label)
