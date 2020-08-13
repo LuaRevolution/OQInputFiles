@@ -115,9 +115,6 @@ class Automation:
         self.Frame.pack()
         self.object = None
 
-        for i,v in kwargs.items():
-            print(i+" "+v)
-
         def checkButtonF():
             if self.checkButtonVar.get() == 0:
                 # uncheck
