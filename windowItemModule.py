@@ -195,21 +195,21 @@ class AutoObject:
     def get(self):
         return self.object
 class SubmitButton:
-    def __init__(self,master,buttontext="Submit",usercommand=None,pady=3,packType=None):
+    def __init__(self,master,buttontext="Submit",command=None,pady=3,packType=None):
         self.Button = tk.Button(master,text=buttontext,width=(len(buttontext)*3))
         if packType == None:
             self.Button.pack(side=packType,pady=pady)
         else:
             self.Button.pack(pady=pady)
-        self.usercommand=usercommand
+        self.command=command
         self.Button.configure(command=self.submit)
-        self.type = windowObject.SubmitButton
+        self.type = windowObject.SUBMIT_BUTTON
     def destroy(self):
         self.Button.destroy()
         del self
     def submit(self):
-        if self.usercommand is not None:
-            self.usercommand()
+        if self.command is not None:
+            self.command()
         top = None
         while True:
             object = self.Button.master

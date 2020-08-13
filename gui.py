@@ -848,13 +848,16 @@ class LtEditor:
         addButton.pack(pady=3)
     def editBs(self,file_type=None): # creates prompt to edit a branchSet
         #setup
+        if file_type is None:
+            file_type = self.file_type
+        self.windowOptions={}
         blIdOptions = [] # list to hold all branchinglevel ids
-        bsIdOptions = [] # list to hold all branchSet ids
+        bsIdOptions = ["Select a branchLevel first"] # list to hold all branchSet ids
         branchSetExists = False # variable to keep track of if a branchset exits
         for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
             if len(v.branchSetList) > 0:
-                branchSetExists = True
-            blIdOptions.append(v.blId)
+                branchSetExists = True # also check for a branch set
+            blIdOptions.append(i)
         if len(blIdOptions) == 0: # check if there is even a branchlevel to edit
             self.createPopup(wtitle="No branchLevel exists",wdescription="No branchLevel exists\nCreate one now?",wtype="yn",yfunc=self.addBl)
             return "No branchingLevels"
@@ -862,16 +865,52 @@ class LtEditor:
             self.createPopup(wtitle="No branchSet exists",wdescription="No branchSet exists\nCreate one now?",wtype="yn",yfunc=self.addBs)
             return "No branchSet to edit"
 
-        #declarations
-        if file_type is None:
-            file_type = self.file_type
-
         #gui
-        top = tk.Toplevel(self.master)
-        top.title("Edit a branchSet")
-        self.placeInCenter(300,155,window=top)
+        self.windowOptions["top"] = tk.Toplevel(self.master)
+        self.windowOptions["top"].title("Edit a branchSet")
+        if file_type == "Source Model Logic Tree":
+            self.placeInCenter(300,149,window=self.windowOptions["top"])
+        else:
+            self.placeInCenter(300,200,window=self.windowOptions["top"])
 
-        test = wim.AutoEntry(top,label="blId:")
+
+        # frames
+        self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["dropdownFrame"].pack()
+        self.windowOptions["optionFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["optionFrame"].pack()
+        #dropdowns
+        self.windowOptions["bsIdDropdown"] = None
+        # blid dropdown
+        def createBsIdDropdown(blId):
+            if self.windowOptions["bsIdDropdown"] is not None:
+                self.windowOptions["bsIdDropdown"].destroy()
+            bl = self.logic_tree.getBranchingLevel(blId)
+            bsIdOptions = []
+            for i,v in bl.branchSetList.copy().items():
+                bsIdOptions.append(i)
+            self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT)
+        self.windowOptions["blIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="blId:",options=blIdOptions,defaultval="...",command=createBsIdDropdown,framePackType=tk.LEFT)
+        # bsid dropdown
+        def bsIdSelected(bsId):
+            pass
+        self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT)
+        # options
+        self.windowOptions["bsIdO"] = wim.Entry(self.windowOptions["optionFrame"], label="bsId:")
+        self.windowOptions["uncertaintyTypeO"] = wim.Entry(self.windowOptions["optionFrame"], label="uncertaintyType:",type=wim.windowObject.FULL_ENTRY)
+        self.windowOptions["attrO"] = None
+        if file_type == "GMPE":
+            self.windowOptions["attrO"] = wim.Entry(self.windowOptions["optionFrame"], label="applyToTectonicRegionType:",type=wim.windowObject.FULL_ENTRY)
+        def submit():
+            bl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdDropdown"].get())
+            bs = bl.getBranchSet(bsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
+            bs.realBsId = self.windowOptions["bsIdO"].get()
+            bs.uncertaintyType = self.windowOptions["uncertaintyTypeO"].get()
+            if file_type == "GMPE":
+                bs.applyToTectonicRegionType = self.windowOptions["attrO"].get()
+            self.outputLogicTree()
+        addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Done",command=submit)
+
 
     def editBr(self,file_type=None): # creates prompt to edit a branch
         pass
