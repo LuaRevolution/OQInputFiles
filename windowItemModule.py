@@ -6,8 +6,20 @@ class windowObject(enum.Enum):
     FULL_ENTRY = "FULL_ENTRY OBJECT"
     DROPDOWN = "DROPDOWN OBJECT"
     FULL_DROPDOWN = "FULL_DROPDOWN OBJECT"
-    AUTOMATION = "AUTOMATION OBJECT"
+    AUTO_OBJECT = "AUTOMATIC OBJECT"
+    SUBMIT_BUTTON = "SUBMIT_BUTTON OBJECT"
 class Entry:
+    # vital arguments:
+    # - master (container)
+    # - label (text of the label)
+    # semi-vital arguments:
+    # - type (specify whether the entry should be next to the label or on the next line and cover the window) -> windowObject.ENTRY or windowObject.FULL_ENTRY
+    # - stringvar (variable that the entry uses to hold it's value)
+    # - defaultval (default text of the entry)
+    # methods:
+    # - destroy() -> deletes label and entry, and self
+    # - get() -> returns the value of the entry
+    # - set(str) -> sets the value of the entry to str
     def __init__(self,master,type=None,label="Default",stringvar=None,defaultval=None,pady=3):
         # declarations
         if master == None:
@@ -45,9 +57,29 @@ class Entry:
         del self
     def get(self):
         return self.Entry.get()
+    def set(self,str):
+        self.Entry.set(str)
 class Dropdown:
-    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,type=windowObject.DROPDOWN,framePackType=None):
+    # vital arguments:
+    # - master (container)
+    # - label (label text)
+    # - options (options for the dropdown menu)
+    # semi-vital arguments:
+    # - type (whether the object is a FULL_DROPDOWN or DROPDOWN)
+    # - command (function called when dropdown option is selected)
+    # - stringvar (variable that the dropdown changes)
+    # - defaultval (default value for the dropdown)
+    # - noLabel (specify whether or not to have no label, just dropdown)
+    # unimportant arguments:
+    # - packType (pack "side" argument for the label and dropdown)
+    # - framePackType (pack "side" argument for the frame holding the label and dropdown)
+    # - pady (y padding for the label and dropdown)
+    # methods:
+    # - destroy() -> deletes label and dropdown, and self
+    # - get() -> returns the value of the entry
+    def __init__(self,master,label="Default",stringvar=None,defaultval=None,options=None,noLabel=None,packType=None,command=None,pady=3,framePackType=None,type=windowObject.DROPDOWN):
         # declarations
+
         if master == None:
             return 'No window'
         if stringvar == None:
@@ -58,10 +90,14 @@ class Dropdown:
             self.stringvar.set(defaultval)
         if packType == None:
             self.packType = tk.LEFT
+        else:
+            self.packType = packType
         if options == None:
             self.options = ["Default"]
             if self.stringvar is not None and defaultval is None:
                 self.stringvar.set(self.options[0])
+        else:
+            self.options = options
         if noLabel == None:
             noLabel = False
             self.noLabel = noLabel
@@ -70,6 +106,7 @@ class Dropdown:
         self.master = master
         self.label = label
         self.Label = None
+        self.type = windowObject.DROPDOWN
 
         #gui
         self.Frame = tk.Frame(self.master)
@@ -101,7 +138,17 @@ class Dropdown:
         del self
     def get(self):
         return self.OptionMenu.get()
-class Automation:
+class AutoObject:
+    # notes: any other arguments are passed directly to the desired object (ex "label" argument will be passed to the Entry object)
+    # vital arguments:
+    # - master (container)
+    # - objectType (type of the object you want to automate)
+    # semi-vital arguments:
+    # - _checkbuttoncommand (function that will be called when the checkbutton is clicked) -> this function will get passed a boolean argument "checked" that specifies whether the box is checked
+    # - _checkbuttontext (text of the checkbutton)
+    # methods:
+    # - destroy() -> deletes the tkinter widgets and self
+    # - get() -> returns the actual object (example: an Entry object)
     def __init__(self,master,objectType,_checkbuttoncommand=None,_checkbuttontext=None,**kwargs):
         if master == None:
             return 'No window'
@@ -111,7 +158,7 @@ class Automation:
             except:
                 _checkbuttontext = "No text"
 
-        self.type = windowObject.AUTOMATION
+        self.type = windowObject.AUTO_OBJECT
         self.master = master
         self.checkButtonVar = tk.IntVar()
         self.Frame = tk.Frame(self.master)
@@ -143,12 +190,36 @@ class Automation:
         return self.type
     def destroy(self):
         self.object.destroy()
+        self.Frame.destroy()
         del self
     def get(self):
         return self.object
+class SubmitButton:
+    def __init__(self,master,buttontext="Submit",usercommand=None,pady=3,packType=None):
+        self.Button = tk.Button(master,text=buttontext,width=(len(buttontext)*3))
+        if packType == None:
+            self.Button.pack(side=packType,pady=pady)
+        else:
+            self.Button.pack(pady=pady)
+        self.usercommand=usercommand
+        self.Button.configure(command=self.submit)
+        self.type = windowObject.SubmitButton
+    def destroy(self):
+        self.Button.destroy()
+        del self
+    def submit(self):
+        if self.usercommand is not None:
+            self.usercommand()
+        top = None
+        while True:
+            object = self.Button.master
+            if isinstance(object, tk.Toplevel) or isinstance(object,tk.Tk):
+                top = object
+                break
+        top.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    test = Automation(root,windowObject.DROPDOWN,label="Test:")
+    test = AutoObject(root,windowObject.DROPDOWN,label="Test:")
     test2 = Dropdown(root,noLabel=True)
     root.mainloop()
