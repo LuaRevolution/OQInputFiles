@@ -16,8 +16,8 @@ class Entry:
     # - type (specify whether the entry should be next to the label or on the next line and cover the window) -> windowObject.ENTRY or windowObject.FULL_ENTRY
     # - stringvar (variable that the entry uses to hold it's value)
     # - defaultval (default text of the entry)
-    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance)
-    # - entry_config (pass tkinter entry config in a dictionary directly to the tkinter instance)
+    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance) -> WILL OVERRIDE PREVIOUS ARGUMENTS
+    # - entry_config (pass tkinter entry config in a dictionary directly to the tkinter instance) -> WILL OVERRIDE PREVIOUS ARGUMENTS
     # methods:
     # - destroy() -> deletes label and entry, and self
     # - get() -> returns the value of the entry
@@ -65,7 +65,6 @@ class Entry:
         self.stringvar.set(str)
         self.Entry.delete(0,tk.END)
         self.Entry.insert(0,str)
-        print(self.stringvar.get())
 class Dropdown:
     # vital arguments:
     # - master (container)
@@ -77,7 +76,7 @@ class Dropdown:
     # - stringvar (variable that the dropdown changes)
     # - defaultval (default value for the dropdown)
     # - noLabel (specify whether or not to have no label, just dropdown)
-    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance)
+    # - label_config (pass tkinter label config in a dictionary directly to the tkinter instance) -> WILL OVERRIDE PREVIOUS ARGUMENTS
     # - dropdown_config (pass tkinter optionmenu config in a dictionary directly to the tkinter instance)
     # unimportant arguments:
     # - packType (pack "side" argument for the label and dropdown)

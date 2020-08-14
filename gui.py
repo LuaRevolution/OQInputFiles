@@ -881,7 +881,7 @@ class LtEditor:
         self.windowOptions["optionFrame"] = tk.Frame(self.windowOptions["top"])
         self.windowOptions["optionFrame"].pack()
 
-        self.windowOptions["bsIdDropdown"] = None
+        self.windowOptions["blIdDropdown"] = None
         self.windowOptions["bsIdDropdown"] = None
         self.windowOptions["bsIdO"] = None
         self.windowOptions["uncertaintyTypeO"] = None
@@ -893,11 +893,11 @@ class LtEditor:
             bl = self.logic_tree.getBranchingLevel(blId)
             bsIdOptions = []
             for i,v in bl.branchSetList.copy().items():
-                bsIdOptions.append(i)
+                bsIdOptions.append(v.realBsId)
             self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT,command=bsIdSelected)
         def bsIdSelected(bsId): # bound to bsIdDropdown
             bl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdDropdown"].get())
-            bs = bl.getBranchSet(bsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
+            bs = bl.getBranchSet(realBsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
             if self.windowOptions["bsIdO"] is not None:
                 self.windowOptions["bsIdO"].set(bs.realBsId)
             if self.windowOptions["uncertaintyTypeO"] is not None:
@@ -913,7 +913,7 @@ class LtEditor:
             self.windowOptions["attrO"] = wim.Entry(self.windowOptions["optionFrame"], label="applyToTectonicRegionType:",type=wim.windowObject.FULL_ENTRY)
         def submit():
             bl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdDropdown"].get())
-            bs = bl.getBranchSet(bsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
+            bs = bl.getBranchSet(realBsId=self.windowOptions["bsIdDropdown"].get(),type="obj")
             bs.realBsId = self.windowOptions["bsIdO"].get()
             bs.uncertaintyType = self.windowOptions["uncertaintyTypeO"].get()
             if file_type == "GMPE":
@@ -922,8 +922,111 @@ class LtEditor:
             self.windowOptions["top"].destroy()
         addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Done",command=submit)
         self.windowOptions["top"].geometry("")
-    def editBr(self,file_type=None): # creates prompt to edit a branch
-        pass
+    def editBr(self): # creates prompt to edit a branch
+        #setup
+        self.windowOptions={}
+        blIdOptions = [] # list to hold all branchinglevel ids
+        bsIdOptions = ["Select a branchLevel first"] # list to hold all branchSet ids
+        bIdOptions = ["Select a branchSet first"]
+        branchSetExists = False # variable to keep track of if a branchset exits
+        branchExists = False # variable to keep track of if a branch exists
+        for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
+            if len(v.branchSetList) > 0:
+                for x,k in v.branchSetList.copy().items():
+                    if len(k.branchList) > 0:
+                        branchExists = True
+                branchSetExists = True # also check for a branch set
+            blIdOptions.append(i)
+        if len(blIdOptions) == 0: # check if there is even a branchlevel to edit
+            self.createPopup(wtitle="No branchLevel exists",wdescription="No branchLevel exists\nCreate one now?",wtype="yn",yfunc=self.addBl)
+            return "No branchingLevels"
+        if branchSetExists == False:
+            self.createPopup(wtitle="No branchSet exists",wdescription="No branchSet exists\nCreate one now?",wtype="yn",yfunc=self.addBs)
+            return "No branchSet to edit"
+        if branchExists == False:
+            self.createPopup(wtitle="No branch exists",wdescription="No branch exists\nCreate one now?",wtype="yn",yfunc=self.addBr)
+            return "No branch to edit"
+
+        #gui
+        self.windowOptions["top"] = tk.Toplevel(self.master)
+        self.windowOptions["top"].title("Edit a branch")
+        self.windowOptions["top"].resizable(False,False)
+        if self.file_type == "Source Model Logic Tree":
+            self.placeInCenter(300,171,window=self.windowOptions["top"])
+        else:
+            self.placeInCenter(300,200,window=self.windowOptions["top"])
+
+        # declarations
+        self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["dropdownFrame"].pack()
+        self.windowOptions["optionFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["optionFrame"].pack()
+
+        self.windowOptions["blIdDropdown"] = None
+        self.windowOptions["bsIdDropdown"] = None
+        self.windowOptions["bIdDropdown"] = None
+
+        self.windowOptions["bIdO"] = None
+        self.windowOptions["uncertaintyModelO"] = None
+        self.windowOptions["gmpeO"] = None
+        self.windowOptions["uncertaintyWeightO"] = None
+
+        self.windowOptions["bl"] = None
+        self.windowOptions["bs"] = None
+        self.windowOptions["b"] = None
+
+        #dropdowns
+        def createBsIdDropdown(blId): # bound to blIdDropdown
+            if self.windowOptions["bsIdDropdown"] is not None:
+                self.windowOptions["bsIdDropdown"].destroy()
+            self.windowOptions["bl"] = self.logic_tree.getBranchingLevel(blId)
+            bsIdOptions = []
+            for i,v in self.windowOptions["bl"].branchSetList.copy().items():
+                bsIdOptions.append(v.realBsId)
+            self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT,command=createBIdDropdown)
+        def createBIdDropdown(realBsId): # bound to bsIdDropdown
+            if self.windowOptions["bl"] is None:
+                print('no BranchingLevel')
+                return 'no BranchingLevel'
+            self.windowOptions["bs"] = self.windowOptions["bl"].getBranchSet(realBsId=realBsId,type="obj")
+            if self.windowOptions["bIdDropdown"] is not None:
+                self.windowOptions["bIdDropdown"].destroy()
+            bIdOptions = []
+            for i,v in self.windowOptions["bs"].branchList.copy().items():
+                bIdOptions.append(v.realBId)
+            self.windowOptions["bIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bId:",options=bIdOptions,defaultval="...",framePackType=tk.RIGHT,command=bIdSelected)
+        def bIdSelected(realbId): # bound to bIdDropdown
+            self.windowOptions["b"] = self.windowOptions["bs"].getBranch(realBId=realbId,type="obj")
+            self.windowOptions["bIdO"].set(realbId)
+            if self.file_type == "Source Model Logic Tree":
+                self.windowOptions["uncertaintyModelO"].set(self.windowOptions["b"].uncertaintyModel)
+            elif self.file_type == "GMPE":
+                self.windowOptions["gmpeO"].set(self.windowOptions["b"].GMPETable)
+            self.windowOptions["uncertaintyWeightO"].set(self.windowOptions["b"].uncertaintyWeight)
+        self.windowOptions["blIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="blId:",options=blIdOptions,defaultval="...",command=createBsIdDropdown,framePackType=tk.LEFT)
+        self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT)
+        self.windowOptions["bIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bId:",options=bIdOptions,defaultval="...",framePackType=tk.RIGHT)
+
+        #options
+        self.windowOptions["bIdO"] = wim.Entry(self.windowOptions["optionFrame"],label="bId:")
+        if self.file_type == "Source Model Logic Tree":
+            self.windowOptions["uncertaintyModelO"] = wim.Entry(self.windowOptions["optionFrame"],label="uncertaintyModel:",type=wim.windowObject.FULL_ENTRY,entry_config={"width":"30"})
+        elif self.file_type == "GMPE":
+            self.windowOptions["gmpeO"] = wim.Entry(self.windowOptions["optionFrame"],label="gmpe_table:",type=wim.windowObject.FULL_ENTRY)
+        self.windowOptions["uncertaintyWeightO"] = wim.Entry(self.windowOptions["optionFrame"],label="uncertaintyWeight:",type=wim.windowObject.FULL_ENTRY,entry_config={"width":"30"})
+
+        #submit button
+        def submit():
+            self.windowOptions["b"].realBId = self.windowOptions["bIdO"].get()
+            self.windowOptions["b"].uncertaintyWeight = self.windowOptions["uncertaintyWeightO"].get()
+            if self.file_type == "GMPE":
+                self.windowOptions["b"].GMPETable = self.windowOptions["gmpeO"].get()
+            elif self.file_type == "Source Model Logic Tree":
+                self.windowOptions["b"].uncertaintyModel = self.windowOptions["uncertaintyModelO"].get()
+            self.outputLogicTree()
+            self.windowOptions["top"].destroy()
+        addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Save",command=submit)
+
 
     #Delete Dropdown
     def deleteBl(self,file_type=None): # creates prompt to delete a branchinglevel

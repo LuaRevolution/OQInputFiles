@@ -23,13 +23,17 @@ smltCVars = { # SMLT Core Variables -> Core variables, largely unmodified
 ######### CLASSES
 # note: realbid/realbsid is the id that appears in the generated xml, whereas just bid/bsid is the id that appears in backend code
 class branchC:
-    def changeBranchingLevel(self,newBranchSet,newBId=0): #method to change branch's branching level
-        if newSId == 0:
-            newBId = self.bId
-        self.branchSet.deleteBranch(self.bId, totalDeletion=False) # delete from old list of entities
-        newBranchSet.addBranch(bId=newBId,uncertaintyModel=self.uncertaintyModel,uncertaintyWeight=self.uncertaintyWeight,new=False,branch=self) #add to it's list of entities
-        self.branchSet = newBranchingSet # change our variable
-    def __init__(self,branchSet,bId,uncertaintyModel,uncertaintyWeight, GMPETable=None, realBId=None,file_type="auto",origin=None):
+    # vital arguments:
+    # - branchSet (parent object)
+    # - bId (internal branchId)
+    # - uncertaintyModel (uncertaintyModel)
+    # - uncertaintyWeight (uncertaintyWeight)
+    # - GMPETable (gmpe_table, only if file type is GMPE)
+    # semi-vital arguments:
+    # - realBId (external bId)
+    # unimportant arguments
+    # - file_type (file_type for the branch, will automatically default if left set to "auto")
+    def __init__(self,branchSet,bId,uncertaintyModel,uncertaintyWeight, GMPETable=None, realBId=None,file_type="auto"):
         if file_type == "auto":
             self.file_type=branchSet.branchLevel.logicTree.file_type
         else:
@@ -56,6 +60,16 @@ class branchC:
     def __repr__(self):
         return "<branchC bId:%s blId:%s uncertaintyModel:%s uncertaintyWeight:%s>" % (self.bId,self.branchSet.branchLevel.blId,self.uncertaintyModel,self.uncertaintyWeight) # return
 class branchSetC:
+    # vital arguments:
+    # - branchLevel (parent object)
+    # - bsId (internal bsId)
+    # - applyToTectonicRegionType (applyToTectonicRegionType, only on GMPE files)
+    # semi-vital arguments:
+    # - uncertaintyType (if left to "default", will automatically set itself based on file type)
+    # - branchList (import another branchSet's branchList)
+    # - realBsId (external bsId)
+    # unimportant arguments
+    # - file_type (will automatically default if left to "auto")
     def __init__(self, branchLevel, bsId, uncertaintyType="default", branchList=None,file_type="auto",applyToTectonicRegionType="default",realBsId=None):
         if branchList is None:
             self.branchList = {}
@@ -93,13 +107,13 @@ class branchSetC:
             self.deleteBranch(k) #delete branch
     def __repr__(self):
         return "<branchSetC bsId:%s blId:%s treeId:%s>" % (self.bsId,self.branchLevel,self.branchLevel.logicTree.ltId)
-    def addBranch(self,bId="def",uncertaintyModel="default",uncertaintyWeight="default", new=True, branch=None, GMPETable=None, realBId=None, file_type="auto",origin=None): # method to add branching level. This can be used to add a branch to a different branchinglevel as well as to create a whole different one
+    def addBranch(self,bId="def",uncertaintyModel="default",uncertaintyWeight="default", new=True, branch=None, GMPETable=None, realBId=None, file_type="auto"): # method to add branching level. This can be used to add a branch to a different branchinglevel as well as to create a whole different one
         if bId in self.branchList: # Check if branch id is already in use
             return "Error: branch ID already in use"
         elif bId=="def":
             bId = "b"+str(len(self.branchList)+1) #generate bid
         if new == True:
-            newBranch = branchC(self, bId,uncertaintyModel,uncertaintyWeight,GMPETable=GMPETable,realBId=realBId,file_type=file_type,origin=origin) # create new branch
+            newBranch = branchC(self, bId,uncertaintyModel,uncertaintyWeight,GMPETable=GMPETable,realBId=realBId,file_type=file_type) # create new branch
             self.branchList[bId] = newBranch # add to the list of branch entities
             return newBranch
         elif new == False:
@@ -135,6 +149,13 @@ class branchSetC:
                 elif type == "obj":
                     return self.branchList[bId]
 class branchingLevelC:
+    # vital arguments:
+    # - tree (parent object)
+    # - blId (blId)
+    # semi-vital arguments:
+    # - branchSetList (import another branchingLevel's list)
+    # unimportant arguments
+    # - file_type (will default if left to "auto")
     def addBranchSet(self,bsId="def",realBsId=None,uncertaintyType="default", new=True,branchSet=None, file_type="auto", applyToTectonicRegionType="default"): # method to add branching level. This can be used to add a branch to a different branchinglevel as well as to create a whole different one
         if bsId in self.branchSetList: # Check if branch id is already in use
             return "Error: branchSet ID already in use"
@@ -195,6 +216,11 @@ class branchingLevelC:
     def __repr__(self):
         return "<branchingLevelC blId:%s treeId:%s>" % (self.blId,self.logicTree.ltId)
 class logicTreeC:
+    # semi-vital arguments:
+    # - ltId (logicTree ID)
+    # - blList (import another logicTree's branchList)
+    # unimportant arguments
+    # - file_type (will default if left to "SMLT")
     def __init__(self, ltId="lt1", blList=None, file_type="SMLT"): # get ltid, and check for existing branching levels.
         if blList == None:
             self.blList = {}
