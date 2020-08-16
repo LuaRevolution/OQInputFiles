@@ -41,12 +41,11 @@ class branchC:
         if realBId == None:
             realBId = bId
         if self.file_type == "GMPE": #gmpe has a different bId system than SMLT, so this code is to change smlt bid into gmpe bid
-            if origin == None:
-                temp_bl = branchSet.branchLevel.blId
-                bl_num = temp_bl[2:len(temp_bl)]
-                temp_bid = "b"+bl_num+bId[1:len(bId)]
-                if realBId != temp_bid:
-                    realBId=temp_bid
+            temp_bl = branchSet.branchLevel.blId
+            bl_num = temp_bl[2:len(temp_bl)]
+            temp_bid = "b"+bl_num+bId[1:len(bId)]
+            if realBId != temp_bid:
+                realBId=temp_bid
         self.branchSet = branchSet
         self.bId = bId
         self.realBId = realBId
@@ -103,7 +102,7 @@ class branchSetC:
         self.uncertaintyType=uncertaintyType # uncertaintyType
         self.Class = "branchSetC" # class name, for identification
     def __del__(self):
-        for k,v in self.branchList.copy():
+        for k,v in self.branchList.copy().items():
             self.deleteBranch(k) #delete branch
     def __repr__(self):
         return "<branchSetC bsId:%s blId:%s treeId:%s>" % (self.bsId,self.branchLevel,self.branchLevel.logicTree.ltId)
@@ -171,7 +170,9 @@ class branchingLevelC:
             else:
                 self.branchSetList[branchSet.bsId] = branchSet # add branch to branchList
                 return self.branchSetList[branchSet.bsId]
-    def deleteBranchSet(self,bsId,totalDeletion=True,deletingAll=False): # method to delete branchset, check if you need to remove it from its list of children or completely obliterate it
+    def deleteBranchSet(self,bsId=None,realBsId=None,totalDeletion=True,deletingAll=True): # method to delete branchset, check if you need to remove it from its list of children or completely obliterate it
+        if bsId == None and realBsId is not None:
+            bsId = self.getBranchSet(realBsId=realBsId)
         if bsId in self.branchSetList.copy():
             branchSetInQuestion = self.branchSetList[bsId]
             if totalDeletion == True:
@@ -211,7 +212,7 @@ class branchingLevelC:
         else:
             self.file_type=file_type
     def __del__(self):
-        for k,v in self.branchSetList.items():
+        for k,v in self.branchSetList.copy().items():
             self.deleteBranchSet(k) #delete branch
     def __repr__(self):
         return "<branchingLevelC blId:%s treeId:%s>" % (self.blId,self.logicTree.ltId)
@@ -244,11 +245,11 @@ class logicTreeC:
             newBranchingLevel = branchingLevelC(self,blId,file_type=file_type)
             self.blList[newBranchingLevel.blId] = newBranchingLevel
             return newBranchingLevel
-    def deleteBranchingLevel(self,blId,deletingAll=False): # method to delete branching level
+    def deleteBranchingLevel(self,blId,deletingAll=True): # method to delete branching level
         if blId in self.blList.copy():
             branchingLevelInQuestion = self.blList[blId]
             del branchingLevelInQuestion
-            if deletingAll==False:
+            if deletingAll==True:
                 self.blList.pop(blId)
     def getBranchingLevel(self,blId):
         for k,v in self.blList.copy().items():

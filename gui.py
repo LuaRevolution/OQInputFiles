@@ -4,6 +4,7 @@
 
 #---imports---
 import tkinter as tk
+from tkinter import ttk
 #import configparser
 from tkinter import filedialog
 from PIL import ImageTk, Image
@@ -11,6 +12,7 @@ import enum
 import os
 #own imports
 import ltc
+import jobh
 import windowItemModule as wim
 #---core variables---
 root = tk.Tk()
@@ -228,7 +230,54 @@ class LtEditor:
         pass
     def updateConfig(self, dict): # loops through given dict, updating the config fike
         pass
-
+    def getBlIdOptions(self, parent, noneCommand=None,checkBsExistence=False):
+        blIdOptions = [] # list to hold all branchinglevel ids
+        exists = False
+        for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
+            if len(v.branchSetList) > 0:
+                exists = True # also check for a branch set
+            blIdOptions.append(v.blId)
+        if checkBsExistence == True:
+            return exists
+        else:
+            if len(blIdOptions) > 0:
+                return blIdOptions
+            else:
+                if noneCommand is not None:
+                    noneCommand()
+                return False
+    def getBsIdOptions(self, parent, noneCommand=None,checkBExistence=False, type="external"):
+        Options = [] # list to hold all branchinglevel ids
+        exists = False
+        for i,v in parent.branchSetList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
+            if len(v.branchList) > 0:
+                exists = True # also check for a branch set
+            if type == "external":
+                Options.append(v.realBsId)
+            else:
+                Options.append(v.bsId)
+        if checkBExistence == True:
+            return exists
+        else:
+            if len(Options) > 0:
+                return Options
+            else:
+                if noneCommand is not None:
+                    noneCommand()
+                return False
+    def getBIdOptions(self, parent, noneCommand=None, type="external"):
+        Options = [] # list to hold all branchinglevel ids
+        for i,v in parent.branchList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
+            if type == "external":
+                Options.append(v.realBId)
+            else:
+                Options.append(v.bId)
+        if len(Options) > 0:
+            return Options
+        else:
+            if noneCommand is not None:
+                noneCommand()
+            return False
     #---bound functions---
     # file dropdown
     def newFile(self,file_type=None): # creates a new file
@@ -794,10 +843,8 @@ class LtEditor:
 
     #Edit Dropdown
     def editBl(self): # creates prompt to edit a branchinglevel
-        blIdOptions = [] # list to hold all branchinglevel ids
-        for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
-            blIdOptions.append(v.blId)
-        if len(blIdOptions) == 0: # check if there is even a branchlevel to edit
+        blIdOptions = self.getBlIdOptions(self.logic_tree)
+        if blIdOptions == False: # check if there is even a branchlevel to edit
             self.createPopup(wtitle="No branchLevel exists",wdescription="No branchLevel exists\nCreate one now?",wtype="yn",yfunc=self.addBl)
             return "No branchingLevels"
 
@@ -843,6 +890,8 @@ class LtEditor:
                         self.createPopup(wtitle="Error",wdescription="Different branchingLevel already uses that branchingLevelId")
             except:
                 bl.blId = newBlId
+                self.unsavedChanges=True
+                self.updateWindowTitle()
                 self.outputLogicTree()
                 top.destroy()
         addButton = tk.Button(top,text="Edit",command=addButtonF,width=12)
@@ -852,14 +901,11 @@ class LtEditor:
         if file_type is None:
             file_type = self.file_type
         self.windowOptions={}
-        blIdOptions = [] # list to hold all branchinglevel ids
+        blIdOptions = self.getBlIdOptions(self.logic_tree)
         bsIdOptions = ["Select a branchLevel first"] # list to hold all branchSet ids
-        branchSetExists = False # variable to keep track of if a branchset exits
-        for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
-            if len(v.branchSetList) > 0:
-                branchSetExists = True # also check for a branch set
-            blIdOptions.append(i)
-        if len(blIdOptions) == 0: # check if there is even a branchlevel to edit
+        branchSetExists = self.getBlIdOptions(self.logic_tree,checkBsExistence=True)
+
+        if blIdOptions == False: # check if there is even a branchlevel to edit
             self.createPopup(wtitle="No branchLevel exists",wdescription="No branchLevel exists\nCreate one now?",wtype="yn",yfunc=self.addBl)
             return "No branchingLevels"
         if branchSetExists == False:
@@ -890,6 +936,7 @@ class LtEditor:
         def createBsIdDropdown(blId): # bound to blIdDropdown
             if self.windowOptions["bsIdDropdown"] is not None:
                 self.windowOptions["bsIdDropdown"].destroy()
+            print(blId)
             bl = self.logic_tree.getBranchingLevel(blId)
             bsIdOptions = []
             for i,v in bl.branchSetList.copy().items():
@@ -918,6 +965,8 @@ class LtEditor:
             bs.uncertaintyType = self.windowOptions["uncertaintyTypeO"].get()
             if file_type == "GMPE":
                 bs.applyToTectonicRegionType = self.windowOptions["attrO"].get()
+            self.unsavedChanges=True
+            self.updateWindowTitle()
             self.outputLogicTree()
             self.windowOptions["top"].destroy()
         addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Done",command=submit)
@@ -925,19 +974,17 @@ class LtEditor:
     def editBr(self): # creates prompt to edit a branch
         #setup
         self.windowOptions={}
-        blIdOptions = [] # list to hold all branchinglevel ids
+        blIdOptions = self.getBlIdOptions(self.logic_tree) # list to hold all branchinglevel ids
         bsIdOptions = ["Select a branchLevel first"] # list to hold all branchSet ids
         bIdOptions = ["Select a branchSet first"]
-        branchSetExists = False # variable to keep track of if a branchset exits
+        branchSetExists = self.getBlIdOptions(self.logic_tree,checkBsExistence=True) # variable to keep track of if a branchset exits
         branchExists = False # variable to keep track of if a branch exists
         for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
             if len(v.branchSetList) > 0:
                 for x,k in v.branchSetList.copy().items():
                     if len(k.branchList) > 0:
                         branchExists = True
-                branchSetExists = True # also check for a branch set
-            blIdOptions.append(i)
-        if len(blIdOptions) == 0: # check if there is even a branchlevel to edit
+        if blIdOptions == False: # check if there is even a branchlevel to edit
             self.createPopup(wtitle="No branchLevel exists",wdescription="No branchLevel exists\nCreate one now?",wtype="yn",yfunc=self.addBl)
             return "No branchingLevels"
         if branchSetExists == False:
@@ -980,9 +1027,7 @@ class LtEditor:
             if self.windowOptions["bsIdDropdown"] is not None:
                 self.windowOptions["bsIdDropdown"].destroy()
             self.windowOptions["bl"] = self.logic_tree.getBranchingLevel(blId)
-            bsIdOptions = []
-            for i,v in self.windowOptions["bl"].branchSetList.copy().items():
-                bsIdOptions.append(v.realBsId)
+            bsIdOptions = self.getBsIdOptions(self.windowOptions["bl"])
             self.windowOptions["bsIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=bsIdOptions,defaultval="...",framePackType=tk.LEFT,command=createBIdDropdown)
         def createBIdDropdown(realBsId): # bound to bsIdDropdown
             if self.windowOptions["bl"] is None:
@@ -991,9 +1036,7 @@ class LtEditor:
             self.windowOptions["bs"] = self.windowOptions["bl"].getBranchSet(realBsId=realBsId,type="obj")
             if self.windowOptions["bIdDropdown"] is not None:
                 self.windowOptions["bIdDropdown"].destroy()
-            bIdOptions = []
-            for i,v in self.windowOptions["bs"].branchList.copy().items():
-                bIdOptions.append(v.realBId)
+            bIdOptions = self.getBIdOptions(self.windowOptions["bs"])
             self.windowOptions["bIdDropdown"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bId:",options=bIdOptions,defaultval="...",framePackType=tk.RIGHT,command=bIdSelected)
         def bIdSelected(realbId): # bound to bIdDropdown
             self.windowOptions["b"] = self.windowOptions["bs"].getBranch(realBId=realbId,type="obj")
@@ -1024,23 +1067,206 @@ class LtEditor:
             elif self.file_type == "Source Model Logic Tree":
                 self.windowOptions["b"].uncertaintyModel = self.windowOptions["uncertaintyModelO"].get()
             self.outputLogicTree()
+            self.unsavedChanges=True
+            self.updateWindowTitle()
             self.windowOptions["top"].destroy()
         addButton = wim.SubmitButton(self.windowOptions["top"],buttontext="Save",command=submit)
+        self.windowOptions["top"].geometry("")
 
 
     #Delete Dropdown
     def deleteBl(self,file_type=None): # creates prompt to delete a branchinglevel
-        pass
+        #setup
+        self.windowOptions = {}
+        blIdOptions = self.getBlIdOptions(self.logic_tree)
+        if blIdOptions == False: # check if there is even a branchlevel to edit
+            self.createPopup(wtitle="No branchingLevel",wdescription="No branchingLevel exists")
+            return "No branchingLevels"
+        #gui
+        self.windowOptions["top"] = tk.Toplevel(self.master)
+        self.windowOptions["top"].resizable(False,False)
+        self.placeInCenter(150,72,window=self.windowOptions["top"])
+        self.windowOptions["top"].title("Delete")
+        self.windowOptions["blIdO"] = wim.Dropdown(self.windowOptions["top"],label="blId:",options=blIdOptions,pady=3,defaultval="...")
+        #submit
+        def submit():
+            if self.windowOptions["blIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchingLevelID",wdescription="Please select a different branchingLevelID")
+                return "Invalid bl"
+            bl = self.logic_tree.deleteBranchingLevel(self.windowOptions["blIdO"].get())
+            self.unsavedChanges = True
+            self.updateWindowTitle()
+            self.windowOptions["top"].destroy()
+            self.outputLogicTree()
+        self.windowOptions["submitButton"] = wim.SubmitButton(self.windowOptions["top"],command=submit,button_config={"width":"12"},buttontext="Delete")
     def deleteBs(self,file_type=None): # creates prompt to delete a branchSet
-         pass
+        self.windowOptions = {}
+        blIdOptions = self.getBlIdOptions(self.logic_tree)
+        self.windowOptions["bsIdOptions"] = ["..."]
+        bsExists = self.getBlIdOptions(self.logic_tree,checkBsExistence=True)
+        if blIdOptions == False: # check if there is even a branchlevel to edit
+            self.createPopup(wtitle="No branchingLevel",wdescription="No branchingLevel exists")
+            return "No branchingLevels"
+        if bsExists == False:
+            self.createPopup(wtitle="No branchSet",wdescription="No branchSet exists")
+            return "No branchSet"
+        #gui
+        self.windowOptions["top"] = tk.Toplevel(self.master)
+        self.windowOptions["top"].resizable(False,False)
+        self.placeInCenter(300,72,window=self.windowOptions["top"])
+        self.windowOptions["top"].title("Delete")
+        self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["dropdownFrame"].pack()
+        self.windowOptions["bsIdO"] = None
+        def createBsIdDropdown(blId):
+            self.windowOptions["bsIdOptions"] = self.getBsIdOptions(self.logic_tree.getBranchingLevel(blId))
+            if self.windowOptions["bsIdO"] is not None:
+                self.windowOptions["bsIdO"].destroy()
+            self.windowOptions["bsIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=self.windowOptions["bsIdOptions"],pady=3,defaultval="...",framePackType=tk.LEFT)
+        self.windowOptions["blIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="blId:",options=blIdOptions,pady=3,defaultval="...",command=createBsIdDropdown,framePackType=tk.LEFT)
+        self.windowOptions["bsIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=self.windowOptions["bsIdOptions"],pady=3,defaultval="...",framePackType=tk.LEFT)
+        #submit button
+        def submit():
+            if self.windowOptions["blIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchingLevelID",wdescription="Please select a different branchingLevelID")
+                return "Invalid bl"
+            if self.windowOptions["bsIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchSetID",wdescription="Please select a different branchSetID")
+                return "Invalid bs"
+            bl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdO"].get())
+            bl.deleteBranchSet(realBsId=self.windowOptions["bsIdO"].get())
+            self.unsavedChanges = True
+            self.updateWindowTitle()
+            self.outputLogicTree()
+            self.windowOptions["top"].destroy()
+        self.windowOptions["submitButton"] = wim.SubmitButton(self.windowOptions["top"],command=submit,button_config={"width":"12"},buttontext="Delete")
     def deleteBr(self,file_type=None): # creates prompt to delete a branch
-        pass
+        self.windowOptions = {}
+        blIdOptions = self.getBlIdOptions(self.logic_tree)
+        self.windowOptions["bsIdOptions"] = ["..."]
+        self.windowOptions["bIdOptions"] = ["..."]
+        bsExists = self.getBlIdOptions(self.logic_tree,checkBsExistence=True)
+        branchExists = False # variable to keep track of if a branch exists
+        for i,v in self.logic_tree.blList.copy().items(): # loop through the branchlist and add ids as options to blIdOptions
+            if len(v.branchSetList) > 0:
+                for x,k in v.branchSetList.copy().items():
+                    if len(k.branchList) > 0:
+                        branchExists = True
+        if blIdOptions == False: # check if there is even a branchlevel to edit
+            self.createPopup(wtitle="No branchingLevel",wdescription="No branchingLevel exists")
+            return "No branchingLevels"
+        if bsExists == False:
+            self.createPopup(wtitle="No branchSet",wdescription="No branchSet exists")
+            return "No branchSet"
+        if branchExists == False:
+            self.createPopup(wtitle="No branch",wdescription="No branch exists")
+            return "No branch"
+        #gui
+        self.windowOptions["top"] = tk.Toplevel(self.master)
+        self.windowOptions["top"].resizable(False,False)
+        self.placeInCenter(300,72,window=self.windowOptions["top"])
+        self.windowOptions["top"].title("Delete")
+        self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
+        self.windowOptions["dropdownFrame"].pack()
+        self.windowOptions["bsIdO"] = None
+        self.windowOptions["bIdO"] = None
 
+        self.windowOptions["bl"] = None
+        self.windowOptions["bs"] = None
+        self.windowOptions["b"] = None
+
+        def createBsIdDropdown(blId):
+            self.windowOptions["bl"] = self.logic_tree.getBranchingLevel(blId)
+            if self.windowOptions["bl"] == None:
+                return 'bad bl'
+            self.windowOptions["bsIdOptions"] = self.getBsIdOptions(self.logic_tree.getBranchingLevel(blId))
+            if self.windowOptions["bsIdO"] is not None:
+                self.windowOptions["bsIdO"].destroy()
+            self.windowOptions["bsIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=self.windowOptions["bsIdOptions"],pady=3,defaultval="...",framePackType=tk.LEFT,command=createBIdDropdown)
+        def createBIdDropdown(bsId):
+            self.windowOptions["bs"] = self.windowOptions["bl"].getBranchSet(realBsId=bsId,type="obj")
+            if self.windowOptions["bs"] == None:
+                return 'bad bs'
+            self.windowOptions["bIdOptions"] = self.getBIdOptions(self.windowOptions["bs"])
+            if self.windowOptions["bIdO"] is not None:
+                self.windowOptions["bIdO"].destroy()
+            self.windowOptions["bIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bId:",options=self.windowOptions["bIdOptions"],pady=3,defaultval="...",framePackType=tk.RIGHT)
+        def bIdSelected(bId):
+            self.windowOptions["b"] = self.windowOptions["bs"].getBranch(realBId=bId,type="obj")
+        self.windowOptions["blIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="blId:",options=blIdOptions,pady=3,defaultval="...",command=createBsIdDropdown,framePackType=tk.LEFT)
+        self.windowOptions["bsIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bsId:",options=self.windowOptions["bsIdOptions"],pady=3,defaultval="...",framePackType=tk.LEFT)
+        self.windowOptions["bIdO"] = wim.Dropdown(self.windowOptions["dropdownFrame"],label="bId:",options=self.windowOptions["bIdOptions"],pady=3,defaultval="...",framePackType=tk.RIGHT)
+        #submit button
+        def submit():
+            if self.windowOptions["blIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchingLevelID",wdescription="Please select a different branchingLevelID")
+                return "Invalid bl"
+            if self.windowOptions["bsIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchSetID",wdescription="Please select a different branchSetID")
+                return "Invalid bs"
+            if self.windowOptions["bIdO"].get() == "...":
+                self.createPopup(wtitle="Wrong branchID",wdescription="Please select a different branchID")
+                return "Invalid b"
+            if self.windowOptions["b"] == None:
+                self.windowOptions["b"] = self.windowOptions["bs"].getBranch(realBId=self.windowOptions["bIdO"].get(),type="obj")
+            self.windowOptions["bs"].deleteBranch(self.windowOptions["b"].bId)
+            self.unsavedChanges = True
+            self.updateWindowTitle()
+            self.outputLogicTree()
+            self.windowOptions["top"].destroy()
+        self.windowOptions["submitButton"] = wim.SubmitButton(self.windowOptions["top"],command=submit,button_config={"width":"12"},buttontext="Delete")
+
+
+    #---job bound functions---
+    def jNewFile(self):
+        pass
+    def jOpenFile(self):
+        pass
+    def jSaveFile(self,newFile=None):
+        pass
+    def jSaveAsFile(self):
+        pass
+    def jExitButton(self):
+        pass
+    def jExitToMainMenu(self):
+        pass
 
     #---main (job)---
     def job_main(self):
-        pass
+        #setup
+        self.updateWindowTitle()
+        jf = jobh.JobFile() # jobfile class
+        self.windowOptions={}
+        self.master.deiconify() # show window
+        self.master.protocol("WM_DELETE_WINDOW", lambda: self.__del__(wclosed=True))
+        self.master.bind('<Control-Key-s>',self.jSaveFile)
+        # window size
+        width = 700
+        height = 500
+        self.placeInCenter(width,height)
 
+        #---menus---
+        jMenuBar = tk.Menu(self.master)
+        jFileMenu = tk.Menu(jMenuBar)
+        jMenuBar.add_cascade(label="File",menu=jFileMenu)
+
+
+        #---item creation---
+        itemframe = tk.Frame(self.master)
+        itemframe.pack()
+        sections = {}
+        for i,v in jf.settings.items():
+            section = v.section
+            try:
+                sections[section].configure()
+            except:
+                print(section)
+                sections[section] = tk.Label(itemframe,text=section+":")
+                sections[section].configure(font=("Courier", 14))
+                sections[section].pack()
+            self.windowOptions[i]=wim.Entry(itemframe,label=i+":",type=wim.windowObject.FULL_ENTRY)
+
+        self.master.config(menu=jMenuBar)
     #---main (smlt/gmpe)---
     def main(self): # main code for
         #---setup---
@@ -1050,6 +1276,7 @@ class LtEditor:
             self.logic_tree = ltc.logicTreeC(file_type="GMPE")
         self.master.deiconify()
         self.master.title("ltEditor - "+self.file_type)
+        self.master.bind('<Control-Key-s>',self.saveFile)
 
         # delete self on toplevel window close
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.__del__(wclosed=True))
@@ -1133,7 +1360,7 @@ class LtEditor:
         self.outputScroll.pack(side=tk.RIGHT,fill=tk.Y)
 
         #complete
-        self.master.config(menu=menuBar) # add menubar to window
+          # add menubar to window
         self.placeInCenter(width,height)
 #---execution---
 if __name__ == "__main__":

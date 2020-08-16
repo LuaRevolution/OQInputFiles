@@ -22,7 +22,7 @@ class Entry:
     # - destroy() -> deletes label and entry, and self
     # - get() -> returns the value of the entry
     # - set(str) -> sets the value of the entry to str
-    def __init__(self,master,type=None,label="Default",stringvar=None,defaultval=None,pady=0,entry_config={},label_config={}):
+    def __init__(self,master,type=None,label="Default",stringvar=None,defaultval=None,pady=0,entry_config={},label_config={},noPack=False):
         # declarations
         if master == None:
             return 'No window'
@@ -40,14 +40,16 @@ class Entry:
         self.Frame = tk.Frame(self.master)
         if self.type == windowObject.ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
-            self.Label.pack(side=tk.LEFT,pady=pady)
             self.Entry = tk.Entry(self.Frame,variable=stringvar)
-            self.Entry.pack(side=tk.LEFT,pady=pady)
+            if noPack is False:
+                self.Label.pack(side=tk.LEFT,pady=pady)
+                self.Entry.pack(side=tk.LEFT,pady=pady)
         elif self.type == windowObject.FULL_ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
-            self.Label.pack(pady=pady)
             self.Entry = tk.Entry(self.Frame,variable=stringvar,width=58,justify=tk.CENTER)
-            self.Entry.pack(fill=tk.X,expand=True,pady=pady)
+            if noPack is False:
+                self.Label.pack(pady=pady)
+                self.Entry.pack(fill=tk.X,expand=True,pady=pady,padx=5)
         self.Label.configure(**label_config)
         self.Entry.configure(**entry_config)
         self.Frame.pack()
@@ -204,7 +206,7 @@ class AutoObject:
     def get(self):
         return self.object
 class SubmitButton:
-    def __init__(self,master,buttontext="Submit",command=None,pady=3,packType=None):
+    def __init__(self,master,buttontext="Submit",command=None,pady=3,packType=None,button_config={}):
         self.Button = tk.Button(master,text=buttontext,width=(len(buttontext)*3))
         if packType == None:
             self.Button.pack(side=packType,pady=pady)
@@ -212,6 +214,7 @@ class SubmitButton:
             self.Button.pack(pady=pady)
         self.command=command
         self.Button.configure(command=self.submit)
+        self.Button.configure(**button_config)
         self.type = windowObject.SUBMIT_BUTTON
     def destroy(self):
         self.Button.destroy()
