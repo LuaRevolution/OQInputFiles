@@ -16,6 +16,7 @@ import jobh
 import windowItemModule as wim
 #---core variables---
 root = tk.Tk()
+icon = "icon.ico"
 #config = configparser.ConfigParser()
 #---core functions---
 def switchFileTypes(ltEditorObj):
@@ -24,7 +25,7 @@ def switchFileTypes(ltEditorObj):
 #---classes / gui---
 class LtEditor:
     #---event methods---
-    def __init__(self, master, *args, **kwargs):
+    def __init__(self, master, icon,*args, **kwargs):
         # init is not actually where the main portion of the gui inits, main_init is
         self.tk = master # actual tkinter instance
         self.tk.withdraw() # hide the legitmate tkinter instance
@@ -37,7 +38,8 @@ class LtEditor:
         self.unsavedChanges = False # keep track of unsaved changes
         self.jf = None # job file class
         #self.master.resizable(False,False)
-
+        self.icon = icon
+        self.master.iconbitmap(self.icon)
         self.startMenu() # run the start menu, get the file type
     def __del__(self,wclosed=False):
         if wclosed==True:
@@ -57,6 +59,7 @@ class LtEditor:
         #top
         top = tk.Toplevel(self.tk)
         top.resizable(False,False)
+        top.iconbitmap(self.icon)
         top.title("ltEditor - Select a file type")
         width = 325
         height = 300
@@ -364,6 +367,7 @@ class LtEditor:
         #new window
         top = tk.Toplevel(self.master)
         top.resizable(False,False)
+        top.iconbitmap(self.icon)
         self.windowOptions["top"]=top
         top.title("Add BranchingLevel and BranchSet")
         width=400
@@ -513,6 +517,7 @@ class LtEditor:
         top.resizable(False,False)
         self.windowOptions["top"]=top
         top.title("Add BranchingLevel")
+        top.iconbitmap(self.icon)
         width=400
         height=200
         self.placeInCenter(width,height,window=top)
@@ -566,6 +571,7 @@ class LtEditor:
         top = tk.Toplevel(self.master)
         top.resizable(False,False)
         top.title("Add branchSet")
+        top.iconbitmap(self.icon)
         width=300
         height=150
         self.placeInCenter(width,height,window=top)
@@ -701,6 +707,7 @@ class LtEditor:
         top = tk.Toplevel(self.master)
         top.resizable(False,False)
         top.title("Add branch")
+        top.iconbitmap(self.icon)
         self.placeInCenter(350,200,window=top)
         #blid
         def blIdDropDownClicked(value):
@@ -863,6 +870,7 @@ class LtEditor:
         top.title("Edit a branchingLevel")
         self.placeInCenter(300,99,window=top)
         top.resizable(False,False)
+        top.iconbitmap(self.icon)
         #frames
         targetFrame = tk.Frame(top)
         targetFrame.pack()
@@ -920,6 +928,7 @@ class LtEditor:
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].title("Edit a branchSet")
         self.windowOptions["top"].resizable(False,False)
+        self.windowOptions["top"].iconbitmap(self.icon)
         if file_type == "Source Model Logic Tree":
             self.placeInCenter(300,149,window=self.windowOptions["top"])
         else:
@@ -1002,6 +1011,7 @@ class LtEditor:
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].title("Edit a branch")
         self.windowOptions["top"].resizable(False,False)
+        self.windowOptions["top"].iconbitmap(self.icon)
         if self.file_type == "Source Model Logic Tree":
             self.placeInCenter(300,171,window=self.windowOptions["top"])
         else:
@@ -1089,6 +1099,7 @@ class LtEditor:
         #gui
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].resizable(False,False)
+        self.windowOptions["top"].iconbitmap(self.icon)
         self.placeInCenter(150,72,window=self.windowOptions["top"])
         self.windowOptions["top"].title("Delete")
         self.windowOptions["blIdO"] = wim.Dropdown(self.windowOptions["top"],label="blId:",options=blIdOptions,pady=3,defaultval="...")
@@ -1117,6 +1128,7 @@ class LtEditor:
         #gui
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].resizable(False,False)
+        self.windowOptions["top"].iconbitmap(self.icon)
         self.placeInCenter(300,72,window=self.windowOptions["top"])
         self.windowOptions["top"].title("Delete")
         self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
@@ -1168,6 +1180,7 @@ class LtEditor:
         #gui
         self.windowOptions["top"] = tk.Toplevel(self.master)
         self.windowOptions["top"].resizable(False,False)
+        self.windowOptions["top"].iconbitmap(self.icon)
         self.placeInCenter(300,72,window=self.windowOptions["top"])
         self.windowOptions["top"].title("Delete")
         self.windowOptions["dropdownFrame"] = tk.Frame(self.windowOptions["top"])
@@ -1431,5 +1444,6 @@ class LtEditor:
         self.placeInCenter(width,height)
 #---execution---
 if __name__ == "__main__":
-    ltE = LtEditor(root)
+    ltE = LtEditor(root,icon=icon)
+    root.iconbitmap(icon)
     root.mainloop()
