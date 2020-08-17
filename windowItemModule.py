@@ -38,6 +38,10 @@ class Entry:
         self.label = label
         # Gui
         self.Frame = tk.Frame(self.master)
+        if noPack is True:
+            self.Frame = self.master
+        else:
+            self.Frame.pack()
         if self.type == windowObject.ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
             self.Entry = tk.Entry(self.Frame,variable=stringvar)
@@ -52,7 +56,7 @@ class Entry:
                 self.Entry.pack(fill=tk.X,expand=True,pady=pady,padx=5)
         self.Label.configure(**label_config)
         self.Entry.configure(**entry_config)
-        self.Frame.pack()
+
     def __repr__(self):
         return self.get()
     def destroy(self):

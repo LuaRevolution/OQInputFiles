@@ -35,6 +35,7 @@ class LtEditor:
         self.view_mode = tk.StringVar() # viewmode (mode to display logictree object in): xml, Simplified
         self.file_path = None # saved/opened file path
         self.unsavedChanges = False # keep track of unsaved changes
+        self.jf = None # job file class
         #self.master.resizable(False,False)
 
         self.startMenu() # run the start menu, get the file type
@@ -225,7 +226,10 @@ class LtEditor:
             else:
                 self.master.title("ltEditor - "+self.file_type+" - "+self.file_path+"*")
         else:
-            self.master.title("ltEditor - "+self.file_type+" - "+self.file_path)
+            if self.file_path == None:
+                self.master.title("ltEditor - "+self.file_type)
+            else:
+                self.master.title("ltEditor - "+self.file_type+" - "+self.file_path)
     def readConfig(self,key): # fetches the config value for the key given
         pass
     def updateConfig(self, dict): # loops through given dict, updating the config fike
@@ -1219,54 +1223,115 @@ class LtEditor:
 
     #---job bound functions---
     def jNewFile(self):
-        pass
+        def nf():
+            del self.jf
+            self.jf = job.JobFile()
+            for i,v in self.windowOptions.items():
+                v.set("")
+        self.createPopup(wtype="yn",wtitle="New",wdescription="Are you sure you want to create a new file?\nYou will lose all unsaved data.",yfunc=nf)
     def jOpenFile(self):
-        pass
+        try:
+            tempfilepath = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("ini files","*.ini"),("all files","*.*")))
+            if tempfilepath is not "":
+                self.file_path = tempfilepath
+            else:
+                return "User canceled"
+        except:
+            return "User canceled save"
+
+        self.jf.open(self.file_path)
+        for i,v in self.windowOptions.copy().items():
+            v.set(self.jf.settings[i].value)
+        self.unsavedChanges=False
+        self.updateWindowTitle(unsaved=self.unsavedChanges)
     def jSaveFile(self,newFile=None):
-        pass
+        #checks and ask for file dialog
+        openParam = ""
+        if self.file_path == None:
+            newFile = True
+        if newFile == True:
+            try:
+                self.file_path = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".ini",filetypes = (("ini file","*.ini"), ("all files","*.*")))
+            except FileNotFoundError:
+                return "User canceled save"
+            openParam = "x"
+        else:
+            openParam = "w"
+
+        for i,v in self.windowOptions.copy().items():
+            self.jf.set({i:v.get()})
+        self.jf.save(file_path=self.file_path)
+
+        self.unsavedChanges=False
+        self.updateWindowTitle(unsaved=self.unsavedChanges)
+
+        self.createPopup(wtitle="Successfully saved",wdescription="The file has been saved.")
     def jSaveAsFile(self):
-        pass
-    def jExitButton(self):
-        pass
-    def jExitToMainMenu(self):
-        pass
+        self.jSaveFile(newFile=True)
 
     #---main (job)---
     def job_main(self):
         #setup
-        self.updateWindowTitle()
-        jf = jobh.JobFile() # jobfile class
+        self.updateWindowTitle(unsaved=self.unsavedChanges)
+        self.jf = jobh.JobFile() # jobfile class
         self.windowOptions={}
         self.master.deiconify() # show window
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.__del__(wclosed=True))
         self.master.bind('<Control-Key-s>',self.jSaveFile)
+        self.master.resizable(False,False)
+        self.file_path = None
         # window size
-        width = 700
-        height = 500
-        self.placeInCenter(width,height)
+        width = 600
+        height = 800
 
         #---menus---
         jMenuBar = tk.Menu(self.master)
-        jFileMenu = tk.Menu(jMenuBar)
-        jMenuBar.add_cascade(label="File",menu=jFileMenu)
 
+        # file drop down
+        fileMainMenu = tk.Menu(jMenuBar,tearoff=0) # file drop down
+        jMenuBar.add_cascade(label="File",menu=fileMainMenu)
+        fileSaveMenu = tk.Menu(jMenuBar,tearoff=0) # save options
+        fileExitMenu = tk.Menu(jMenuBar,tearoff=0) # exit Options
+
+        # file commands
+        fileMainMenu.add_command(label="New",command=self.jNewFile) # new cascade
+        fileMainMenu.add_command(label="Open",command=self.jOpenFile) # new cascade
+        fileMainMenu.add_separator()
+        fileMainMenu.add_cascade(label="Save",menu=fileSaveMenu) # save cascade
+        fileSaveMenu.add_command(label="Save",command=self.jSaveFile) # save option
+        fileSaveMenu.add_command(label="Save As",command=self.jSaveAsFile) # save option
+        fileMainMenu.add_separator()
+        fileMainMenu.add_cascade(label="Exit",menu=fileExitMenu)
+        fileExitMenu.add_command(label="Exit to Main Menu",command=self.exitToMainMenuButton)
+        fileExitMenu.add_command(label="Exit to Desktop",command=self.exitButton)
+
+        def unsavedBind(key):
+            self.unsavedChanges=True
+            self.updateWindowTitle(unsaved=self.unsavedChanges)
 
         #---item creation---
         itemframe = tk.Frame(self.master)
-        itemframe.pack()
+        itemframe.grid()
         sections = {}
-        for i,v in jf.settings.items():
+        rowCount = 0
+        for i,v in self.jf.settings.items():
             section = v.section
             try:
                 sections[section].configure()
             except:
-                print(section)
                 sections[section] = tk.Label(itemframe,text=section+":")
                 sections[section].configure(font=("Courier", 14))
-                sections[section].pack()
-            self.windowOptions[i]=wim.Entry(itemframe,label=i+":",type=wim.windowObject.FULL_ENTRY)
+                sections[section].grid(row=rowCount,column=0,columnspan=2)
+                rowCount = rowCount+1
+            self.windowOptions[i]=wim.Entry(itemframe,label=i+":",type=wim.windowObject.FULL_ENTRY,noPack=True,entry_config={"justify":tk.LEFT})
+            self.windowOptions[i].Label.grid(row=rowCount,column=0)
+            self.windowOptions[i].Entry.grid(row=rowCount,column=1)
+            self.windowOptions[i].Entry.bind("<Key>", unsavedBind)
+            rowCount = rowCount+1
 
         self.master.config(menu=jMenuBar)
+        self.placeInCenter(width,height,window=self.master,place=True)
+        self.master.geometry("")
     #---main (smlt/gmpe)---
     def main(self): # main code for
         #---setup---
@@ -1361,6 +1426,7 @@ class LtEditor:
 
         #complete
           # add menubar to window
+        self.master.config(menu=menuBar)
         self.placeInCenter(width,height)
 #---execution---
 if __name__ == "__main__":

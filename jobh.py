@@ -120,9 +120,9 @@ class JobFile:
             file_path = self.file_path
         try:
             file = open(file_path,"w")
-        except FileExistsError:
-            os.remove(file_path)
-            file = open(file_path,"w")
+        except FileNotFoundError:
+            print("File doesn't exist")
+            return("File doesn't exist")
         self.parser.write(file)
         file.close()
     def sendToParser(self,settings=None,newSections=True):
