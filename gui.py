@@ -1342,6 +1342,7 @@ class LtEditor:
         self.master.deiconify()
         self.master.title("ltEditor - "+self.file_type)
         self.master.bind('<Control-Key-s>',self.saveFile)
+        self.file_path=None
 
         # delete self on toplevel window close
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.__del__(wclosed=True))
