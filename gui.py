@@ -38,6 +38,21 @@ class LtEditor:
         self.unsavedChanges = False # keep track of unsaved changes
         self.jf = None # job file class
         #self.master.resizable(False,False)
+        #check for image files
+        try: # check for icon
+            f = open(icon)
+        except IOError:
+            self.icon=self.resource_path(icon)
+        finally:
+            f.close()
+            self.icon=icon
+        try:
+            f = open(r"logo.png")
+        except IOError:
+            self.logo=self.resource_path(r"logo.png")
+        finally:
+            f.close()
+            self.logo=r"logo.png"
         self.icon = icon
         self.master.iconbitmap(self.icon)
         self.startMenu() # run the start menu, get the file type
@@ -55,6 +70,14 @@ class LtEditor:
         pass
 
     #---core functions---
+    def resource_path(relative_path):
+        #""" Get absolute path to resource, works for dev and for PyInstaller """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
     def startMenu(self):
         #top
         top = tk.Toplevel(self.tk)
@@ -70,7 +93,7 @@ class LtEditor:
         # delete self on toplevel window close
         top.protocol("WM_DELETE_WINDOW", top.quit)
         #logo
-        logoFile=ImageTk.PhotoImage(file="logo.png")
+        logoFile=ImageTk.PhotoImage(file=self.logo)
         logo = tk.Label(top,image=logoFile)
         logo.image=logoFile
         logo.pack()
@@ -1268,7 +1291,11 @@ class LtEditor:
             newFile = True
         if newFile == True:
             try:
-                self.file_path = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".ini",filetypes = (("ini file","*.ini"), ("all files","*.*")))
+                tempfilepath = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".ini",filetypes = (("ini file","*.ini"), ("all files","*.*")))
+                if tempfilepath == "":
+                    return "User canceled save"
+                else:
+                    self.file_path=tempfilepath
             except FileNotFoundError:
                 return "User canceled save"
             openParam = "x"
@@ -1451,3 +1478,4 @@ if __name__ == "__main__":
     ltE = LtEditor(root,icon=icon)
     root.iconbitmap(icon)
     root.mainloop()
+    root.quit()
