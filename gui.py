@@ -16,7 +16,7 @@ import jobh
 import windowItemModule as wim
 #---core variables---
 root = tk.Tk()
-icon = "icon.ico"
+icon = r"icon.ico"
 #config = configparser.ConfigParser()
 #---core functions---
 def switchFileTypes(ltEditorObj):
@@ -317,7 +317,11 @@ class LtEditor:
                 newFile=False
         if newFile == True:
             try:
-                self.file_path = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".xml",filetypes = (("XML file","*.xml"), ("all files","*.*")))
+                tempfilepath = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".xml",filetypes = (("XML file","*.xml"), ("all files","*.*")))
+                if tempfilepath == "":
+                    return "User canceled save"
+                else:
+                    self.file_path = tempfilepath
             except FileNotFoundError:
                 return "User canceled save"
             openParam = "x"
