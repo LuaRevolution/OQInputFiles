@@ -4,12 +4,12 @@
 
 #---imports---
 import tkinter as tk
-from tkinter import ttk
-#import configparser
+import configparser
 from tkinter import filedialog
 from PIL import ImageTk, Image
 import enum
 import os
+from pathlib import Path
 #own imports
 import ltc
 import jobh
@@ -40,11 +40,26 @@ class LtEditor:
         self.master.withdraw() # hide the window temporarily
         self.file_type = None # default file type
         self.logic_tree = None # logic tree
-        self.view_mode = tk.StringVar() # viewmode (mode to display logictree object in): xml, Simplified
         self.file_path = None # saved/opened file path
         self.unsavedChanges = False # keep track of unsaved changes
         self.jf = None # job file class
+        self.config_path = "config.ini"
         #self.master.resizable(False,False)
+
+        # all config file configurable settings
+        #config list
+        self.config_list = jobh.configList()
+        #default path setting
+        self.default_path_obj = jobh.configItem("default_path","core")
+        self.config_list.add(self.default_path_obj)
+        #view setting
+        self.view_obj = jobh.configItem("view","preferences")
+        self.view_obj.value = tk.StringVar() # viewmode (mode to display logictree object in): xml, Simplified
+        self.config_list.add(self.view_obj)
+
+        # read config file
+        self.readConfigFile()
+
         #check for image files
         try: # check for icon
             f = open("icon.ico")
@@ -150,7 +165,7 @@ class LtEditor:
             file_type=self.file_type
         str = ""
         if viewmode == None:
-            viewmode = self.view_mode.get()
+            viewmode = self.view_obj.value.get()
         if viewmode == "Simplified":
             if file_type=="Source Model Logic Tree":
                 isFirst=True
@@ -240,7 +255,7 @@ class LtEditor:
         self.logic_tree = newLogTre
         self.file_path=None
         self.updateWindowTitle()
-        self.outputLogicTree(viewmode=self.view_mode.get())
+        self.outputLogicTree(viewmode=self.view_obj.value.get())
         return self.logic_tree
     def updateWindowTitle(self,unsaved=True): # updates the window title
         if unsaved==True:
@@ -253,10 +268,34 @@ class LtEditor:
                 self.master.title("ltEditor - "+self.file_type)
             else:
                 self.master.title("ltEditor - "+self.file_type+" - "+self.file_path)
-    def readConfig(self,key): # fetches the config value for the key given
-        pass
-    def updateConfig(self, dict): # loops through given dict, updating the config fike
-        pass
+    def readConfigFile(self): # fetches the config value for the key given
+        parser = configparser.ConfigParser()
+        try:
+            parser.read(self.config_path)
+        except:
+            print("No config.ini file, creating one...")
+            self.updateConfigFile(newFile=True)
+            return 'No config.ini file'
+        for section in parser.sections():
+            for i,v in parser.items(section):
+                item = self.config_list.get(i,section)
+                if isinstance(item.value,str):
+                    item.set("value",v)
+                elif isinstance(item.value,tk.StringVar):
+                    item.value.set(v)
+    def updateConfigFile(self): # loops through given dict, updating the config fike
+        file = open(self.config_path,"w")
+        parser = configparser.ConfigParser()
+        for section in self.config_list.getSections():
+            parser.add_section(section)
+        for item in self.config_list.list:
+            if isinstance(item.value,str) or isinstance(item.value,int):
+                parser.set(item.section,item.key,item.value)
+            elif isinstance(item.value,tk.StringVar):
+                parser.set(item.section,item.key,item.value.get())
+
+        parser.write(file)
+        file.close()
     def getBlIdOptions(self, parent, noneCommand=None,checkBsExistence=False):
         blIdOptions = [] # list to hold all branchinglevel ids
         exists = False
@@ -513,7 +552,7 @@ class LtEditor:
             tempBl = self.logic_tree.addBranchingLevel(blId=self.windowOptions["blId"])
             tempBlId = tempBl.blId
             tempBs = self.logic_tree.getBranchingLevel(tempBlId).addBranchSet(realBsId=self.windowOptions["bsId"],uncertaintyType=self.windowOptions["uncertaintyType"],applyToTectonicRegionType=self.windowOptions["applyToTectonicRegionType"])
-            self.outputLogicTree(viewmode=self.view_mode.get())
+            self.outputLogicTree(viewmode=self.view_obj.value.get())
             self.windowOptions["top"].destroy()
             self.unsavedChanges=True
             self.updateWindowTitle()
@@ -575,7 +614,7 @@ class LtEditor:
                     return 'No branchingLevelId'
                 self.windowOptions["blId"]=self.windowOptions["blIdBox"].get()
             tempBl = self.logic_tree.addBranchingLevel(blId=self.windowOptions["blId"])
-            self.outputLogicTree(viewmode=self.view_mode.get())
+            self.outputLogicTree(viewmode=self.view_obj.value.get())
             self.windowOptions["top"].destroy()
             self.updateWindowTitle()
             self.unsavedChanges=True
@@ -697,7 +736,7 @@ class LtEditor:
             tempbl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdClicked"].get())
             if tempbl is not "Error":
                 tempbl.addBranchSet(realBsId=self.windowOptions["bsId"],uncertaintyType=self.windowOptions["UncertaintyType"],applyToTectonicRegionType=self.windowOptions["applyToTectonicRegionType"])
-                self.outputLogicTree(viewmode=self.view_mode.get())
+                self.outputLogicTree(viewmode=self.view_obj.value.get())
                 self.windowOptions["top"].destroy()
                 self.updateWindowTitle()
                 self.unsavedChanges=True
@@ -855,7 +894,7 @@ class LtEditor:
                 tempbl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdClicked"].get())
                 tempbs = tempbl.getBranchSet(realBsId=self.windowOptions["bsIdClicked"].get(),type="obj")
                 tempbs.addBranch(bId=self.windowOptions["bId"],uncertaintyWeight=self.windowOptions["uWBox"].get(),GMPETable=self.windowOptions["gmpeBox"].get())
-                self.outputLogicTree(viewmode=self.view_mode.get())
+                self.outputLogicTree(viewmode=self.view_obj.value.get())
                 self.unsavedChanges=True
                 self.updateWindowTitle()
                 self.windowOptions["top"].destroy()
@@ -866,7 +905,7 @@ class LtEditor:
                 tempbl = self.logic_tree.getBranchingLevel(self.windowOptions["blIdClicked"].get())
                 tempbs = tempbl.getBranchSet(realBsId=self.windowOptions["bsIdClicked"].get(),type="obj")
                 tempbs.addBranch(bId=self.windowOptions["bId"],uncertaintyModel=self.windowOptions["uMBox"].get(),uncertaintyWeight=self.windowOptions["uWBox"].get())
-                self.outputLogicTree(viewmode=self.view_mode.get())
+                self.outputLogicTree(viewmode=self.view_obj.value.get())
                 self.unsavedChanges=True
                 self.updateWindowTitle()
                 self.windowOptions["top"].destroy()
@@ -1374,8 +1413,8 @@ class LtEditor:
         self.placeInCenter(width,height,window=self.master,place=True)
         self.master.geometry("")
     #---main (smlt/gmpe)---
-    def main(self): # main code for
-        #---setup---
+    def main(self): # main code fo
+         #---setup---
         if self.file_type == "Source Model Logic Tree":
             self.logic_tree = ltc.logicTreeC(file_type="SMLT")
         elif self.file_type == "GMPE":
@@ -1386,7 +1425,10 @@ class LtEditor:
         self.file_path=None
 
         # delete self on toplevel window close
-        self.master.protocol("WM_DELETE_WINDOW", lambda: self.__del__(wclosed=True))
+        def onDeletion():
+            self.updateConfigFile()
+            self.__del__(wclosed=True)
+        self.master.protocol("WM_DELETE_WINDOW", onDeletion)
         # window size
         width = 700
         height = 500
@@ -1449,10 +1491,9 @@ class LtEditor:
         viewMainMenu = tk.Menu(menuBar,tearoff=0) # view drop down
         viewModeMenu = tk.Menu(menuBar,tearoff=0) # radio menu
         menuBar.add_cascade(label="View",menu=viewMainMenu) # add cascading list to menubars
-        viewModeMenu.add_radiobutton(label="XML",value="XML",variable=self.view_mode,command=self.outputLogicTree)
+        viewModeMenu.add_radiobutton(label="XML",value="XML",variable=self.view_obj.value,command=self.outputLogicTree)
         viewModeMenu.add_separator()
-        viewModeMenu.add_radiobutton(label="Simplified",value="Simplified",variable=self.view_mode,command=self.outputLogicTree)
-        self.view_mode.set("XML")
+        viewModeMenu.add_radiobutton(label="Simplified",value="Simplified",variable=self.view_obj.value,command=self.outputLogicTree)
         viewMainMenu.add_cascade(label="Switch View Mode",menu=viewModeMenu)
 
         #display
@@ -1470,6 +1511,7 @@ class LtEditor:
           # add menubar to window
         self.master.config(menu=menuBar)
         self.placeInCenter(width,height)
+        self.outputLogicTree()
 #---execution---
 if __name__ == "__main__":
     ltE = LtEditor(root)

@@ -269,7 +269,7 @@ class logicTreeC:
                     if k.GMPETable is not None:
                         print("-------->gmpe_table: "+k.GMPETable)
     def __del__(self):
-        for k,v in self.blList.items():
+        for k,v in self.blList.copy().items():
             self.deleteBranchingLevel(k,deletingAll=True)
         self.blList.clear()
     def __repr__(self):

@@ -2,6 +2,33 @@ import configparser
 import os
 
 # setup
+class configList:
+    def __init__(self,list=None):
+        self.list = []
+        if list is not None:
+            for item in list:
+                self.add(item)
+    def add(self,item):
+        self.list.append(item)
+    def get(self,key,section):
+        for item in self.list:
+            if item.key == key and item.section == section:
+                return item
+        return False
+    def getAllFromSection(self,section):
+        list = []
+        for item in self.list:
+            if item.section == section:
+                list.append(item)
+        return list
+    def delete(self,key,section):
+        self.list.remove(self.get(key,section))
+    def getSections(self):
+        list = []
+        for item in self.list:
+            if item.section not in list:
+                list.append(item.section)
+        return list
 class configItem:
     def __init__(self,key,section,value=None):
         self.key = key
