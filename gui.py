@@ -350,9 +350,15 @@ class LtEditor:
         self.createPopup(wtype="yn",wtitle="New",wdescription="Are you sure you want to create a new file?\nYou will lose all unsaved data.",yfunc=self.newLt)
     def openFile(self,file_type=None): # opens file prompt then imports file
         try:
-            self.file_path=filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("XML files","*.xml"),("all files","*.*")))
+            tempfilepath = filedialog.askopenfilename(initialdir = self.default_path_obj.value,title = "Select file",filetypes = (("XML files","*.xml"),("all files","*.*")))
+            if tempfilepath is not "":
+                self.file_path = tempfilepath
+            else:
+                return "User canceled save"
         except:
             return "User canceled save"
+
+        self.default_path_obj.value = str(Path(self.file_path).parent) # set default path
 
         if file_type==None:
             file_type = self.file_type
@@ -376,7 +382,7 @@ class LtEditor:
                 newFile=False
         if newFile == True:
             try:
-                tempfilepath = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".xml",filetypes = (("XML file","*.xml"), ("all files","*.*")))
+                tempfilepath = filedialog.asksaveasfilename(initialdir = self.default_path_obj.value,title = "Select file",defaultextension=".xml",filetypes = (("XML file","*.xml"), ("all files","*.*")))
                 if tempfilepath == "":
                     return "User canceled save"
                 else:
@@ -386,6 +392,9 @@ class LtEditor:
             openParam = "x"
         else:
             openParam = "w"
+
+        self.default_path_obj.value = str(Path(self.file_path).parent) # set default path
+
         try:
             try:
                 file = open(self.file_path,openParam)
@@ -1307,13 +1316,15 @@ class LtEditor:
         self.createPopup(wtype="yn",wtitle="New",wdescription="Are you sure you want to create a new file?\nYou will lose all unsaved data.",yfunc=nf)
     def jOpenFile(self):
         try:
-            tempfilepath = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("ini files","*.ini"),("all files","*.*")))
+            tempfilepath = filedialog.askopenfilename(initialdir = self.default_path_obj.value,title = "Select file",filetypes = (("ini files","*.ini"),("all files","*.*")))
             if tempfilepath is not "":
                 self.file_path = tempfilepath
             else:
                 return "User canceled"
         except:
             return "User canceled save"
+
+        self.default_path_obj.value = str(Path(self.file_path).parent) # set default path
 
         self.jf.open(self.file_path)
         for i,v in self.windowOptions.copy().items():
@@ -1327,7 +1338,7 @@ class LtEditor:
             newFile = True
         if newFile == True:
             try:
-                tempfilepath = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",defaultextension=".ini",filetypes = (("ini file","*.ini"), ("all files","*.*")))
+                tempfilepath = filedialog.asksaveasfilename(initialdir = self.default_path_obj.value,title = "Select file",defaultextension=".ini",filetypes = (("ini file","*.ini"), ("all files","*.*")))
                 if tempfilepath == "":
                     return "User canceled save"
                 else:
@@ -1337,6 +1348,8 @@ class LtEditor:
             openParam = "x"
         else:
             openParam = "w"
+
+        self.default_path_obj.value = str(Path(self.file_path).parent) # set default path
 
         for i,v in self.windowOptions.copy().items():
             self.jf.set({i:v.get()})
@@ -1494,6 +1507,7 @@ class LtEditor:
         viewModeMenu.add_radiobutton(label="XML",value="XML",variable=self.view_obj.value,command=self.outputLogicTree)
         viewModeMenu.add_separator()
         viewModeMenu.add_radiobutton(label="Simplified",value="Simplified",variable=self.view_obj.value,command=self.outputLogicTree)
+        self.view_obj.value.set(self.view_obj.value.get())
         viewMainMenu.add_cascade(label="Switch View Mode",menu=viewModeMenu)
 
         #display
