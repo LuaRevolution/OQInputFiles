@@ -16,16 +16,23 @@ import jobh
 import windowItemModule as wim
 #---core variables---
 root = tk.Tk()
-icon = r"icon.ico"
 #config = configparser.ConfigParser()
 #---core functions---
 def switchFileTypes(ltEditorObj):
     ltEditorObj.__del__(wclosed=False)
     newLte = LtEditor(root)
+def resource_path(relative_path):
+    #""" Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 #---classes / gui---
 class LtEditor:
     #---event methods---
-    def __init__(self, master, icon,*args, **kwargs):
+    def __init__(self, master,*args, **kwargs):
         # init is not actually where the main portion of the gui inits, main_init is
         self.tk = master # actual tkinter instance
         self.tk.withdraw() # hide the legitmate tkinter instance
@@ -40,20 +47,18 @@ class LtEditor:
         #self.master.resizable(False,False)
         #check for image files
         try: # check for icon
-            f = open(icon)
-        except IOError:
-            self.icon=self.resource_path(icon)
-        finally:
+            f = open("icon.ico")
             f.close()
-            self.icon=icon
+            self.icon=r"icon.ico"
+        except:
+            self.icon=resource_path(r"icon.ico")
         try:
             f = open(r"logo.png")
-        except IOError:
-            self.logo=self.resource_path(r"logo.png")
-        finally:
             f.close()
             self.logo=r"logo.png"
-        self.icon = icon
+        except:
+            self.logo=resource_path(r"logo.png")
+
         self.master.iconbitmap(self.icon)
         self.startMenu() # run the start menu, get the file type
     def __del__(self,wclosed=False):
@@ -70,14 +75,6 @@ class LtEditor:
         pass
 
     #---core functions---
-    def resource_path(relative_path):
-        #""" Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
     def startMenu(self):
         #top
         top = tk.Toplevel(self.tk)
@@ -1475,7 +1472,7 @@ class LtEditor:
         self.placeInCenter(width,height)
 #---execution---
 if __name__ == "__main__":
-    ltE = LtEditor(root,icon=icon)
-    root.iconbitmap(icon)
+    ltE = LtEditor(root)
+    root.iconbitmap(resource_path("icon.ico"))
     root.mainloop()
     root.quit()
