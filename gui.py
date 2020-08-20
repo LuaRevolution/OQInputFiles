@@ -293,7 +293,6 @@ class LtEditor:
                 parser.set(item.section,item.key,item.value)
             elif isinstance(item.value,tk.StringVar):
                 parser.set(item.section,item.key,item.value.get())
-
         parser.write(file)
         file.close()
     def getBlIdOptions(self, parent, noneCommand=None,checkBsExistence=False):
