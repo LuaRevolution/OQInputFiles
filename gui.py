@@ -30,6 +30,75 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 #---classes / gui---
+class ObjectType(enum.Enum):
+    BL = "BranchingLevel"
+    BS = "BranchSet"
+    BR = "Branch"
+class ViewObject:
+    def __init__(self,master,type,ltcobject,file_type,parent=None):
+        self.master = master # window / frame
+        self.parent = parent # viewobject parent
+        self.type = type # type of viewobject, see ObjectType enum
+        self.ltcobject = ltcobject # actual logic tree object
+        self.level = None # level / depth of branching
+        self.file_type = file_type
+
+        #detect level
+        if self.type == ObjectType.BL:
+            self.level = 0
+        elif self.type == ObjectType.BS:
+            self.level = 1
+        elif self.type == ObjectType.BR:
+            self.level = 2
+        else:
+            raise ValueError("Invalid ViewObject type, refer to ObjectType enum")
+
+        #---gui
+        self.Frame = tk.Frame(self.master)
+        self.Frame.pack(anchor=tk.NW)
+
+        #canvas
+        if self.type is not ObjectType.BL:
+            size = 25
+            self.CanvasWidth = size+(self.level*size)
+            self.Canvas = tk.Canvas(self.Frame,height=size,width=self.CanvasWidth,bg="blue")
+            self.Canvas.config(bg=self.master["bg"])
+            self.Canvas.pack(side=tk.LEFT)
+
+            half = round(size/2)+2 # half of size
+            posx = self.CanvasWidth-half # pos x
+
+            self.Canvas.create_line(posx,0,posx,half) # vertical line
+            self.Canvas.create_line(posx,half,self.CanvasWidth,half) # horizontal line
+
+        # label
+        self.Label = tk.Label(self.Frame)
+        self.label_def = self.Label["bg"]
+        str = None
+        if self.type == ObjectType.BL:
+            str = "BranchingLevel (branchingLevelId: %s)"%self.ltcobject.blId
+        elif self.type == ObjectType.BS:
+            if self.file_type == "Source Model Logic Tree":
+                str = "BranchSet (branchSetId: {})(uncertaintyType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType)
+            elif self.file_type == "GMPE":
+                str = "BranchSet (branchSetId: {})(uncertaintyType: {})(applyToTectonicRegionType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType,self.ltcobject.applyToTectonicRegionType)
+        elif self.type == ObjectType.BR:
+            if self.file_type == "Source Model Logic Tree":
+                str = "Branch (branchId: {})(uncertaintyModel: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.uncertaintyModel,self.ltcobject.uncertaintyWeight)
+            elif self.file_type == "GMPE":
+                str = "Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.GMPETable,self.ltcobject.uncertaintyWeight)
+        self.Label.config(text=str)
+        self.Label.bind("<Enter>", lambda e: self.Label.config(bg="gainsboro"))
+        self.Label.bind("<Leave>", lambda e: self.Label.config(bg=self.label_def))
+        self.Label.pack(side=tk.LEFT)
+    def __del__(self):
+        pass
+    def add(self,**kwargs):
+        pass
+    def edit(self,**kwargs):
+        pass
+    def viewProperties(self):
+        pass
 class LtEditor:
     #---event methods---
     def __init__(self, master,*args, **kwargs):
@@ -154,6 +223,10 @@ class LtEditor:
         else:
             window.geometry("{}x{}".format(width,height))
     def pToOutput(self,text): # print to output
+        if self.outputArea == None:
+            return False
+        elif isinstance(self.outputArea, tk.Frame):
+            return False
         self.outputArea.configure(state=tk.NORMAL)
         self.outputArea.delete(1.0, "end")
         self.outputArea.insert("end", text)
@@ -163,37 +236,35 @@ class LtEditor:
             ltobj=self.logic_tree
         if file_type==None:
             file_type=self.file_type
-        str = ""
         if viewmode == None:
             viewmode = self.view_obj.value.get()
+        try:
+            self.outputArea.destroy()
+        except:
+            pass
         if viewmode == "Simplified":
-            if file_type=="Source Model Logic Tree":
-                isFirst=True
-                for a,b in ltobj.blList.copy().items():
-                    if isFirst == True:
-                        str = str+("BranchingLevel (branchingLevelId: %s)"%b.blId)
-                        isFirst=False
-                    else:
-                        str = str+("\n\nBranchingLevel (branchingLevelId: %s)"%b.blId)
-                    for k,l in b.branchSetList.copy().items():
-                        str = str+("\n  BranchSet (branchSetId: {})(uncertaintyType: {})".format(l.realBsId, l.uncertaintyType))
-                        for x,z in l.branchList.copy().items():
-                            str = str+("\n    Branch (branchId: {})(uncertaintyModel: {})(uncertaintyWeight: {})".format(z.realBId, z.uncertaintyModel,z.uncertaintyWeight))
-            elif file_type == "GMPE":
-                isFirst=True
-                for a,b in ltobj.blList.copy().items():
-                    if isFirst == True:
-                        str = str+("BranchingLevel (branchingLevelId: %s)"%b.blId)
-                        isFirst=False
-                    else:
-                        str = str+("\n\nBranchingLevel (branchingLevelId: %s)"%b.blId)
-                    for k,l in b.branchSetList.copy().items():
-                        str = str+("\n  BranchSet (branchSetId: {})(uncertaintyType: {})(applyToTectonicRegionType: {})".format(l.realBsId, l.uncertaintyType,l.applyToTectonicRegionType))
-                        for x,z in l.branchList.copy().items():
-                            str = str+("\n    Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(z.realBId, z.GMPETable,z.uncertaintyWeight))
+            self.outputArea = tk.Frame(self.master)
+            self.outputArea.pack(side=tk.TOP,anchor=tk.NW,padx=5)
+
+            for a,b in ltobj.blList.copy().items():
+                bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type)
+                for k,l in b.branchSetList.copy().items():
+                    bs = ViewObject(self.outputArea,ObjectType.BS,l,self.file_type,parent=bl)
+                    for x,z in l.branchList.copy().items():
+                        br = ViewObject(self.outputArea,ObjectType.BR,z,self.file_type,parent=bs)
+
         elif viewmode == "XML":
+            self.outputArea = tk.Text(
+                self.master,
+                bg="#e6e6e6",
+                state=tk.DISABLED
+            )
+            self.outputScroll = tk.Scrollbar(self.master, command=self.outputArea.yview)
+            self.outputArea.configure(yscrollcommand=self.outputScroll.set)
+            self.outputArea.pack(side=tk.LEFT, fill=tk.BOTH,expand=True)
+            self.outputScroll.pack(side=tk.RIGHT,fill=tk.Y)
             str = ltc.createXML(ltobj)
-        self.pToOutput(str)
+            self.pToOutput(str)
     def createPopup(self,wtype="message",wtitle="Popup",wdescription="Description",okfunc=None,yfunc=None,nfunc=None,oktext="Ok",ytext="Yes",ntext="No"): # creates a popup
         #two types: message and yn
         top = tk.Toplevel(self.master)
@@ -1305,6 +1376,8 @@ class LtEditor:
             self.windowOptions["top"].destroy()
         self.windowOptions["submitButton"] = wim.SubmitButton(self.windowOptions["top"],command=submit,button_config={"width":"12"},buttontext="Delete")
 
+    #---smlt/gmpe simplfiied view dropdown---
+
 
     #---job bound functions---
     def jNewFile(self):
@@ -1507,19 +1580,11 @@ class LtEditor:
         viewModeMenu.add_radiobutton(label="XML",value="XML",variable=self.view_obj.value,command=self.outputLogicTree)
         viewModeMenu.add_separator()
         viewModeMenu.add_radiobutton(label="Simplified",value="Simplified",variable=self.view_obj.value,command=self.outputLogicTree)
-        self.view_obj.value.set(self.view_obj.value.get())
         viewMainMenu.add_cascade(label="Switch View Mode",menu=viewModeMenu)
+        self.view_obj.value.set(self.view_obj.value.get())
 
         #display
-        self.outputArea = tk.Text(
-            self.master,
-            bg="#e6e6e6",
-            state=tk.DISABLED
-        )
-        self.outputScroll = tk.Scrollbar(self.master, command=self.outputArea.yview)
-        self.outputArea.configure(yscrollcommand=self.outputScroll.set)
-        self.outputArea.pack(side=tk.LEFT, fill=tk.BOTH,expand=True)
-        self.outputScroll.pack(side=tk.RIGHT,fill=tk.Y)
+        self.outputArea=None
 
         #complete
           # add menubar to window
