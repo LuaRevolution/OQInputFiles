@@ -30,6 +30,13 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+def getWindowSize(window):
+    width = window.winfo_width()
+    height = window.winfo_height()
+    midwidth = round(width/2)
+    midheight = round(height/2)
+    return (midwidth,midheight)
+
 #---classes / gui---
 class ObjectType(enum.Enum):
     LT = "LogicTree"
@@ -112,23 +119,30 @@ class ViewObject:
 
             self.add_child_name = add_child_name
 
+            # rightclick menu
             m = tk.Menu(self.Label, tearoff=0)
             if type is not ObjectType.BR:
                 m.add_command(label="Add "+add_child_name.value,command=self.addW)
                 m.add_separator()
-            m.add_command(label="Edit")
+            m.add_command(label="Edit",command=self.editW)
             m.add_separator()
             m.add_command(label="Delete",command=self.delete)
 
-
-            def do_popup(event):
+            # binds
+            def right_click_popup(event):
                 try:
                     self.xpos = event.x_root
                     self.ypos = event.y_root
                     popup = m.tk_popup(event.x_root, event.y_root)
                 finally:
                     m.grab_release()
-            self.Label.bind("<Button-3>", do_popup)
+            def double_click_popup(event):
+                try:
+                    self.editW(xpos=event.x_root,ypos=event.y_root)
+                finally:
+                    m.grab_release()
+            self.Label.bind("<Button-3>", right_click_popup)
+            self.Label.bind('<Double-Button-1>', double_click_popup)
         else:
             self.add_child_name = ObjectType.BL
     def __del__(self,total_del=False):
@@ -180,6 +194,9 @@ class ViewObject:
                     dict["realBId"] = stringvar.get()
                 else:
                     dict[key] = stringvar.get()
+                    if dict[key] == "":
+                        self.lteditor.createPopup(wtitle="Error",wdescription="Please enter a valid "+key)
+                        return 'No '+key
             if self.add_child_name.value == ObjectType.BL.value:
                 if dict["blId"] == "":
                     dict["blId"] = "def"
@@ -198,10 +215,57 @@ class ViewObject:
             self.lteditor.outputLogicTree()
 
         self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",command=submit)
+    def editW(self,xpos=None,ypos=None,**kwargs):
+        self.windowOptions = {}
+        self.windowOptions["_values"] = {}
+        #gui
+        top = tk.Toplevel(self.master)
 
+        top.resizable(False,False)
+        top.iconbitmap(self.lteditor.icon)
+        self.windowOptions["top"]=top
+        top.title("Edit "+self.type.value)
+
+        if self.type == ObjectType.BL:
+            width=380
+            height=80
+        elif self.type == ObjectType.BS:
+            width=380
+            height=100
+        elif self.type == ObjectType.BR:
+            width=380
+            height=150
+        if xpos == None and ypos == None:
+            self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
+        else:
+            self.placeInCenter(width,height,window=top,xpos=xpos,ypos=ypos)
+
+        #properties
+        properties = ltc.Properties()
+        for property in properties.getImportance(1,type=self.type):
+            if property.native_file_type is None or property.native_file_type == self.file_type:
+                self.windowOptions["_values"][property.name] = tk.StringVar()
+                self.windowOptions[property.name+"O"] = wim.Entry(self.windowOptions["top"],type=wim.windowObject.FULL_ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name])
+                self.windowOptions["_values"][property.name].set(getattr(self.ltcobject,property.name))
+
+        def submit():
+            for key,stringvar in self.windowOptions["_values"].copy().items():
+                newkey = key
+                if key == "bsId":
+                    newkey = "realBsId"
+                elif key == "bId":
+                    newkey = "realBId"
+                else:
+                    if stringvar.get() == "":
+                        self.lteditor.createPopup(wtitle="Error",wdescription="Please enter a valid "+newkey)
+                        return 'No '+newkey
+                setattr(self.ltcobject,newkey,stringvar.get())
+
+            self.windowOptions["top"].destroy()
+            self.lteditor.outputLogicTree()
+
+        self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",command=submit,no_destroy=True)
         top.geometry("")
-    def editW(self,**kwargs):
-        pass
     def delete(self):
         if self.type == ObjectType.BL:
             self.ltcobject.logicTree.deleteBranchingLevel(self.ltcobject.blId)
@@ -227,7 +291,6 @@ class ViewObject:
             window.geometry(geostring)
         else:
             window.geometry(geostring)
-
 class LtEditor:
     #---event methods---
     def __init__(self, master,*args, **kwargs):

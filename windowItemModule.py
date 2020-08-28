@@ -210,7 +210,7 @@ class AutoObject:
     def get(self):
         return self.object
 class SubmitButton:
-    def __init__(self,master,buttontext="Submit",command=None,pady=3,packType=None,button_config={}):
+    def __init__(self,master,buttontext="Submit",command=None,pady=3,packType=None,no_destroy=False,button_config={}):
         self.Button = tk.Button(master,text=buttontext,width=(len(buttontext)*3))
         if packType == None:
             self.Button.pack(side=packType,pady=pady)
@@ -220,6 +220,7 @@ class SubmitButton:
         self.Button.configure(command=self.submit)
         self.Button.configure(**button_config)
         self.type = windowObject.SUBMIT_BUTTON
+        self.no_destroy = no_destroy
     def destroy(self):
         self.Button.destroy()
         del self
@@ -232,7 +233,8 @@ class SubmitButton:
             if isinstance(object, tk.Toplevel) or isinstance(object,tk.Tk):
                 top = object
                 break
-        top.destroy()
+        if self.no_destroy == False:
+            top.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
