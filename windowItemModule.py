@@ -175,27 +175,25 @@ class AutoObject:
         self.type = windowObject.AUTO_OBJECT
         self.master = master
         self.checkButtonVar = tk.IntVar()
+        self.checkButtonVar.set(0)
         self.Frame = tk.Frame(self.master)
         self.Frame.pack()
         self.object = None
         self.objectType = objectType
         self.kwargs = kwargs
         self._checkbuttoncommand = _checkbuttoncommand
-        self.checkButton = tk.Checkbutton(self.Frame,text=_checkbuttontext,command=self.checkButtonF)
+        self.checkButton = tk.Checkbutton(self.Frame,text=_checkbuttontext,variable=self.checkButtonVar,command=lambda:self.checkButtonF())
         self.checkButton.pack()
-        self.checkButton.deselect()
         self.checkButton.invoke()
     def checkButtonF(self):
         var = self.checkButtonVar
-        print("var:"+hex(id(self.checkButtonF)))
-        if var.get() == 0:
+        if var.get() == 1:
             # uncheck
             if self.object is not None:
                 self.object.destroy()
             if self._checkbuttoncommand is not None:
                 self._checkbuttoncommand(checked=False)
-            var.set(1)
-        elif var.get() == 1:
+        elif var.get() == 0:
             # check
             if self.objectType == windowObject.ENTRY:
                 self.object = Entry(self.Frame,**self.kwargs)
@@ -203,7 +201,6 @@ class AutoObject:
                 self.object = Dropdown(self.Frame,**self.kwargs)
             if self._checkbuttoncommand is not None:
                 self._checkbuttoncommand(checked=True)
-            var.set(0)
     def __repr__(self):
         return self.type
     def destroy(self):

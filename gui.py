@@ -32,11 +32,12 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 #---classes / gui---
 class ObjectType(enum.Enum):
+    LT = "LogicTree"
     BL = "BranchingLevel"
     BS = "BranchSet"
     BR = "Branch"
 class ViewObject:
-    def __init__(self,master,type,ltcobject,file_type,ltEditor,parent=None):
+    def __init__(self,master,type,ltcobject,file_type,ltEditor,parent=None,xpos=None,ypos=None):
         self.master = master # window / frame
         self.parent = parent # viewobject parent
         self.type = type # type of viewobject, see ObjectType enum
@@ -45,6 +46,8 @@ class ViewObject:
         self.file_type = file_type
         self.lteditor = ltEditor
         self.add_child_name = None
+        self.xpos = xpos
+        self.ypos = ypos
 
         #detect level
         if self.type == ObjectType.BL:
@@ -53,7 +56,7 @@ class ViewObject:
             self.level = 1
         elif self.type == ObjectType.BR:
             self.level = 2
-        else:
+        elif self.type is not ObjectType.LT:
             raise ValueError("Invalid ViewObject type, refer to ObjectType enum")
 
         #---gui
@@ -61,7 +64,7 @@ class ViewObject:
         self.Frame.pack(anchor=tk.NW)
 
         #canvas
-        if self.type is not ObjectType.BL:
+        if self.type is not ObjectType.BL and self.type is not ObjectType.LT:
             size = 25
             self.CanvasWidth = size+(self.level*size)
             self.Canvas = tk.Canvas(self.Frame,height=size,width=self.CanvasWidth,bg="blue")
@@ -75,45 +78,48 @@ class ViewObject:
             self.Canvas.create_line(posx,half,self.CanvasWidth,half) # horizontal line
 
         # label
-        self.Label = tk.Label(self.Frame)
-        self.label_def = self.Label["bg"]
-        add_child_name = None
-        str = None
-        if self.type == ObjectType.BL:
-            str = "BranchingLevel (branchingLevelId: %s)"%self.ltcobject.blId
-            add_child_name = ObjectType.BS
-        elif self.type == ObjectType.BS:
-            add_child_name = ObjectType.BR
-            if self.file_type == "Source Model Logic Tree":
-                str = "BranchSet (branchSetId: {})(uncertaintyType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType)
-            elif self.file_type == "GMPE":
-                str = "BranchSet (branchSetId: {})(uncertaintyType: {})(applyToTectonicRegionType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType,self.ltcobject.applyToTectonicRegionType)
-        elif self.type == ObjectType.BR:
-            if self.file_type == "Source Model Logic Tree":
-                str = "Branch (branchId: {})(uncertaintyModel: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.uncertaintyModel,self.ltcobject.uncertaintyWeight)
-            elif self.file_type == "GMPE":
-                str = "Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.GMPETable,self.ltcobject.uncertaintyWeight)
-        self.Label.config(text=str)
-        self.Label.bind("<Enter>", lambda e: self.Label.config(bg="gainsboro"))
-        self.Label.bind("<Leave>", lambda e: self.Label.config(bg=self.label_def))
-        self.Label.pack(side=tk.LEFT)
+        if self.type is not ObjectType.LT:
+            self.Label = tk.Label(self.Frame)
+            self.label_def = self.Label["bg"]
+            add_child_name = ObjectType.BL
+            str = None
+            if self.type == ObjectType.BL:
+                str = "BranchingLevel (branchingLevelId: %s)"%self.ltcobject.blId
+                add_child_name = ObjectType.BS
+            elif self.type == ObjectType.BS:
+                add_child_name = ObjectType.BR
+                if self.file_type == "Source Model Logic Tree":
+                    str = "BranchSet (branchSetId: {})(uncertaintyType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType)
+                elif self.file_type == "GMPE":
+                    str = "BranchSet (branchSetId: {})(uncertaintyType: {})(applyToTectonicRegionType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType,self.ltcobject.applyToTectonicRegionType)
+            elif self.type == ObjectType.BR:
+                if self.file_type == "Source Model Logic Tree":
+                    str = "Branch (branchId: {})(uncertaintyModel: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.uncertaintyModel,self.ltcobject.uncertaintyWeight)
+                elif self.file_type == "GMPE":
+                    str = "Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.GMPETable,self.ltcobject.uncertaintyWeight)
+            self.Label.config(text=str)
+            self.Label.bind("<Enter>", lambda e: self.Label.config(bg="gainsboro"))
+            self.Label.bind("<Leave>", lambda e: self.Label.config(bg=self.label_def))
+            self.Label.pack(side=tk.LEFT)
 
-        self.add_child_name = add_child_name
+            self.add_child_name = add_child_name
 
-        m = tk.Menu(self.master, tearoff=0)
-        if type is not ObjectType.BR:
-            m.add_command(label="Add "+add_child_name.value,command=self.addW)
+            m = tk.Menu(self.master, tearoff=0)
+            if type is not ObjectType.BR:
+                m.add_command(label="Add "+add_child_name.value,command=self.addW)
+                m.add_separator()
+            m.add_command(label="Edit")
             m.add_separator()
-        m.add_command(label="Edit")
-        m.add_separator()
-        m.add_command(label="Delete",command=self.delete)
+            m.add_command(label="Delete",command=self.delete)
 
-        def do_popup(event):
-            try:
-                m.tk_popup(event.x_root, event.y_root)
-            finally:
-                m.grab_release()
-        self.Label.bind("<Button-3>", do_popup)
+            def do_popup(event):
+                try:
+                    m.tk_popup(event.x_root, event.y_root)
+                finally:
+                    m.grab_release()
+            self.Label.bind("<Button-3>", do_popup)
+        else:
+            self.add_child_name = ObjectType.BL
     def __del__(self,total_del=False):
         try:
             self.Frame.destroy()
@@ -126,28 +132,53 @@ class ViewObject:
         self.windowOptions["_values"] = {}
         #gui
         top = tk.Toplevel(self.master)
+        width=200
+        height=80
+        self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
         top.resizable(False,False)
         top.iconbitmap(self.lteditor.icon)
         self.windowOptions["top"]=top
         top.title("Add "+self.add_child_name.value)
-        width=400
-        height=200
-        self.lteditor.placeInCenter(width,height,window=top)
+
 
         #properties
         properties = ltc.Properties()
         for property in properties.getImportance(1,type=self.add_child_name):
-            self.windowOptions["_values"][property.name] = tk.StringVar()
-            if property.auto == True:
-                self.windowOptions[property.name+"O"] = wim.AutoObject(self.windowOptions["top"],wim.windowObject.ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name],_checkbuttoncommand=lambda checked:top.geometry(""))
-            else:
-                self.windowOptions[property.name+"O"] = wim.Entry(self.windowOptions["top"],type=wim.windowObject.FULL_ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name])
+            if property.native_file_type is None or property.native_file_type == self.file_type:
+                self.windowOptions["_values"][property.name] = tk.StringVar()
+                if property.auto == True:
+                    self.windowOptions[property.name+"O"] = wim.AutoObject(self.windowOptions["top"],wim.windowObject.ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name],_checkbuttoncommand=lambda checked:top.geometry(""))
+                else:
+                    self.windowOptions[property.name+"O"] = wim.Entry(self.windowOptions["top"],type=wim.windowObject.FULL_ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name])
         def submit():
-            pass
+            dict = {}
+            for key,stringvar in self.windowOptions["_values"].copy().items():
+                if key == "bsId":
+                    dict["realBsId"] = stringvar.get()
+                elif key == "bId":
+                    dict["realBId"] = stringvar.get()
+                else:
+                    dict[key] = stringvar.get()
+            if self.add_child_name.value == ObjectType.BL.value:
+                if dict["blId"] == "":
+                    dict["blId"] = "def"
+                self.lteditor.logic_tree.addBranchingLevel(**dict)
+            elif self.add_child_name.value == ObjectType.BS.value:
+                if dict["realBsId"] == "":
+                    dict["realBsId"] = "def"
+                if dict["uncertaintyType"] == "":
+                    dict["uncertaintyType"] = "default"
+                self.ltcobject.addBranchSet(**dict)
+            elif self.add_child_name.value == ObjectType.BR.value:
+                if dict["realBId"] == "":
+                    dict["bId"] = "def"
+                    dict["realBId"] = None
+                self.ltcobject.addBranch(**dict)
+            self.lteditor.outputLogicTree()
+
         self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",command=submit)
 
         top.geometry("")
-
     def editW(self,**kwargs):
         pass
     def delete(self):
@@ -159,6 +190,22 @@ class ViewObject:
             self.ltcobject.branchSet.deleteBranch(self.ltcobject.bId)
         self.lteditor.outputLogicTree()
         del self
+    def placeInCenter(self,width,height,window=None,place=True,xpos=None,ypos=None,geostring_only=False): #fixes x,y placement of window
+        if window is None:
+            window=self.master
+        if xpos is not None and ypos is not None:
+            x = xpos - (width //2)
+            y = ypos - (height //2)
+        else:
+            x = (window.winfo_screenwidth() // 2) - (width //2)
+            y = (window.winfo_screenheight() // 2) - (height //2)
+        geostring = "{}x{}+{}+{}".format(width,height,x,y)
+        if geostring_only:
+            return geostring
+        if place==True:
+            window.geometry(geostring)
+        else:
+            window.geometry(geostring)
 
 class LtEditor:
     #---event methods---
@@ -308,6 +355,7 @@ class LtEditor:
         if viewmode == "Simplified":
             self.outputArea = tk.Frame(self.master)
             self.outputArea.pack(anchor=tk.NW,padx=5)
+
             for a,b in ltobj.blList.copy().items():
                 bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type,self)
                 for k,l in b.branchSetList.copy().items():
@@ -1643,6 +1691,25 @@ class LtEditor:
         viewModeMenu.add_radiobutton(label="Simplified",value="Simplified",variable=self.view_obj.value,command=self.outputLogicTree)
         viewMainMenu.add_cascade(label="Switch View Mode",menu=viewModeMenu)
         self.view_obj.value.set(self.view_obj.value.get())
+
+        # right-click menu
+
+        self.popmenu = None
+
+        def pop(event):
+            try:
+                self.popmenu.destroy()
+            except:
+                pass
+            self.popmenu = tk.Menu(self.master, tearoff=0)
+            lt = ViewObject(self.master,ObjectType.LT,self.logic_tree,self.file_type,self,xpos=event.x_root,ypos=event.y_root)
+            self.popmenu.add_command(label="Add BranchingLevel",command=lt.addW)
+            try:
+                self.popmenu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.popmenu.grab_release()
+
+        self.master.bind("<Button-3>", pop)
 
         #display
         self.outputArea=None

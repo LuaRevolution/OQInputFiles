@@ -21,16 +21,24 @@ smltCVars = { # SMLT Core Variables -> Core variables, largely unmodified
 }
 ######### PROPERTY LIST
 class ObjectType(enum.Enum):
+    LT = "LogicTree"
     BL = "BranchingLevel"
     BS = "BranchSet"
     BR = "Branch"
 class Property:
-    def __init__(self,name,valueptr,importance,auto=False,full_entry=True):
+    def __init__(self,name,valueptr,importance,auto=False,full_entry=True,file_spec=None):
         self.name = name
         self.value = valueptr
         self.importance = importance
         self.auto=auto
         self.full_entry=full_entry
+        self.native_file_type=None
+        if file_spec == 0:
+            self.native_file_type="Source Model Logic Tree"
+        elif file_spec == 1:
+            self.native_file_type="GMPE"
+    def output(self):
+        return (self.name, self.value)
 class Properties:
     def __init__(self,object=None):
         self.all = []
@@ -46,7 +54,7 @@ class Properties:
             Property("bsId",None,1,auto=True),
             Property("Internal bsId",None,0),
             Property("uncertaintyType",None,1,auto=True),
-            Property("applyToTectonicRegionType",None,1),
+            Property("applyToTectonicRegionType",None,1,file_spec=1),
             Property("branchLevel",None,0),
             Property("branchList",None,0),
             Property("Class",None,0),
@@ -55,9 +63,9 @@ class Properties:
         self.BR = [
             Property("bId",None,1,auto=True),
             Property("Internal bId",None,0),
-            Property("uncertaintyModel",None,1),
+            Property("uncertaintyModel",None,1,file_spec=0),
             Property("uncertaintyWeight",None,1),
-            Property("gmpe_table",None,1),
+            Property("gmpe_table",None,1,file_spec=1),
             Property("branchSet",None,0),
             Property("Class",None,0),
             Property("file_type",None,0)
@@ -78,7 +86,7 @@ class Properties:
                     Property("bsId",self.object.realBsId,1,auto=True),
                     Property("Internal bsId",self.object.bsId,0),
                     Property("uncertaintyType",self.object.uncertaintyType,1,auto=True),
-                    Property("applyToTectonicRegionType",self.object.applyToTectonicRegionType,1),
+                    Property("applyToTectonicRegionType",self.object.applyToTectonicRegionType,1,file_spec=1),
                     Property("branchLevel",self.object.branchLevel,0),
                     Property("branchList",self.object.branchList,0),
                     Property("Class",self.object.Class,0),
@@ -89,9 +97,9 @@ class Properties:
                 self.all = [
                     Property("bId",self.object.realBId,1,auto=True),
                     Property("Internal bId",self.object.bId,0),
-                    Property("uncertaintyModel",self.object.uncertaintyModel,1),
+                    Property("uncertaintyModel",self.object.uncertaintyModel,1,file_spec=0),
                     Property("uncertaintyWeight",self.object.uncertaintyWeight,1),
-                    Property("gmpe_table",self.object.GMPETable,1),
+                    Property("gmpe_table",self.object.GMPETable,1,file_spec=1),
                     Property("branchSet",self.object.branchSet,0),
                     Property("Class",self.object.Class,0),
                     Property("file_type",self.object.file_type,0)
@@ -99,8 +107,8 @@ class Properties:
     def getImportance(self,importance,type=None):
         list = []
         if self.object == None:
-            if type == ObjectType.BL:
-                for property.value in self.BL.value:
+            if type.value == ObjectType.BL.value:
+                for property in self.BL:
                     if property.importance == importance:
                         list.append(property)
             elif type.value == ObjectType.BS.value:
@@ -205,10 +213,10 @@ class branchSetC:
     def __repr__(self):
         return "<branchSetC bsId:%s blId:%s treeId:%s>" % (self.bsId,self.branchLevel,self.branchLevel.logicTree.ltId)
     def addBranch(self,bId="def",uncertaintyModel="default",uncertaintyWeight="default", new=True, branch=None, GMPETable=None, realBId=None, file_type="auto"): # method to add branching level. This can be used to add a branch to a different branchinglevel as well as to create a whole different one
+        if bId=="def":
+            bId = "b"+str(len(self.branchList)+1) #generate bid
         if bId in self.branchList: # Check if branch id is already in use
             return "Error: branch ID already in use"
-        elif bId=="def":
-            bId = "b"+str(len(self.branchList)+1) #generate bid
         if new == True:
             newBranch = branchC(self, bId,uncertaintyModel,uncertaintyWeight,GMPETable=GMPETable,realBId=realBId,file_type=file_type) # create new branch
             self.branchList[bId] = newBranch # add to the list of branch entities
