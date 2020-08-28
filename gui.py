@@ -4,6 +4,7 @@
 
 #---imports---
 import tkinter as tk
+from tkinter import ttk
 import configparser
 from tkinter import filedialog
 from PIL import ImageTk, Image
@@ -35,13 +36,15 @@ class ObjectType(enum.Enum):
     BS = "BranchSet"
     BR = "Branch"
 class ViewObject:
-    def __init__(self,master,type,ltcobject,file_type,parent=None):
+    def __init__(self,master,type,ltcobject,file_type,ltEditor,parent=None):
         self.master = master # window / frame
         self.parent = parent # viewobject parent
         self.type = type # type of viewobject, see ObjectType enum
         self.ltcobject = ltcobject # actual logic tree object
         self.level = None # level / depth of branching
         self.file_type = file_type
+        self.lteditor = ltEditor
+        self.add_child_name = None
 
         #detect level
         if self.type == ObjectType.BL:
@@ -74,10 +77,13 @@ class ViewObject:
         # label
         self.Label = tk.Label(self.Frame)
         self.label_def = self.Label["bg"]
+        add_child_name = None
         str = None
         if self.type == ObjectType.BL:
             str = "BranchingLevel (branchingLevelId: %s)"%self.ltcobject.blId
+            add_child_name = ObjectType.BS
         elif self.type == ObjectType.BS:
+            add_child_name = ObjectType.BR
             if self.file_type == "Source Model Logic Tree":
                 str = "BranchSet (branchSetId: {})(uncertaintyType: {})".format(self.ltcobject.realBsId, self.ltcobject.uncertaintyType)
             elif self.file_type == "GMPE":
@@ -91,14 +97,69 @@ class ViewObject:
         self.Label.bind("<Enter>", lambda e: self.Label.config(bg="gainsboro"))
         self.Label.bind("<Leave>", lambda e: self.Label.config(bg=self.label_def))
         self.Label.pack(side=tk.LEFT)
-    def __del__(self):
+
+        self.add_child_name = add_child_name
+
+        m = tk.Menu(self.master, tearoff=0)
+        if type is not ObjectType.BR:
+            m.add_command(label="Add "+add_child_name.value,command=self.addW)
+            m.add_separator()
+        m.add_command(label="Edit")
+        m.add_separator()
+        m.add_command(label="Delete",command=self.delete)
+
+        def do_popup(event):
+            try:
+                m.tk_popup(event.x_root, event.y_root)
+            finally:
+                m.grab_release()
+        self.Label.bind("<Button-3>", do_popup)
+    def __del__(self,total_del=False):
+        try:
+            self.Frame.destroy()
+        except:
+            pass
+        if total_del==True:
+            self.delete()
+    def addW(self,**kwargs):
+        self.windowOptions = {}
+        self.windowOptions["_values"] = {}
+        #gui
+        top = tk.Toplevel(self.master)
+        top.resizable(False,False)
+        top.iconbitmap(self.lteditor.icon)
+        self.windowOptions["top"]=top
+        top.title("Add "+self.add_child_name.value)
+        width=400
+        height=200
+        self.lteditor.placeInCenter(width,height,window=top)
+
+        #properties
+        properties = ltc.Properties()
+        for property in properties.getImportance(1,type=self.add_child_name):
+            self.windowOptions["_values"][property.name] = tk.StringVar()
+            if property.auto == True:
+                self.windowOptions[property.name+"O"] = wim.AutoObject(self.windowOptions["top"],wim.windowObject.ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name],_checkbuttoncommand=lambda checked:top.geometry(""))
+            else:
+                self.windowOptions[property.name+"O"] = wim.Entry(self.windowOptions["top"],type=wim.windowObject.FULL_ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name])
+        def submit():
+            pass
+        self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",command=submit)
+
+        top.geometry("")
+
+    def editW(self,**kwargs):
         pass
-    def add(self,**kwargs):
-        pass
-    def edit(self,**kwargs):
-        pass
-    def viewProperties(self):
-        pass
+    def delete(self):
+        if self.type == ObjectType.BL:
+            self.ltcobject.logicTree.deleteBranchingLevel(self.ltcobject.blId)
+        elif self.type == ObjectType.BS:
+            self.ltcobject.branchLevel.deleteBranchSet(realBsId=self.ltcobject.realBsId)
+        elif self.type == ObjectType.BR:
+            self.ltcobject.branchSet.deleteBranch(self.ltcobject.bId)
+        self.lteditor.outputLogicTree()
+        del self
+
 class LtEditor:
     #---event methods---
     def __init__(self, master,*args, **kwargs):
@@ -240,19 +301,19 @@ class LtEditor:
             viewmode = self.view_obj.value.get()
         try:
             self.outputArea.destroy()
+            self.outputScroll.destroy()
+            self.outputAreaHolder.destroy()
         except:
             pass
         if viewmode == "Simplified":
             self.outputArea = tk.Frame(self.master)
-            self.outputArea.pack(side=tk.TOP,anchor=tk.NW,padx=5)
-
+            self.outputArea.pack(anchor=tk.NW,padx=5)
             for a,b in ltobj.blList.copy().items():
-                bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type)
+                bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type,self)
                 for k,l in b.branchSetList.copy().items():
-                    bs = ViewObject(self.outputArea,ObjectType.BS,l,self.file_type,parent=bl)
+                    bs = ViewObject(self.outputArea,ObjectType.BS,l,self.file_type,self,parent=bl)
                     for x,z in l.branchList.copy().items():
-                        br = ViewObject(self.outputArea,ObjectType.BR,z,self.file_type,parent=bs)
-
+                        br = ViewObject(self.outputArea,ObjectType.BR,z,self.file_type,self,parent=bs)
         elif viewmode == "XML":
             self.outputArea = tk.Text(
                 self.master,

@@ -2,8 +2,8 @@
 ######### IMPORTS
 import configparser
 import sys
-import json
 import defusedxml.ElementTree as DET
+import enum
 #import pyperclip
 import xml.dom.minidom
 
@@ -19,6 +19,104 @@ smltCVars = { # SMLT Core Variables -> Core variables, largely unmodified
     "xmlns": "http://openquake.org/xmlns/nrml/0.4",
     "ns0": "http://openquake.org/xmlns/nrml/0.4"
 }
+######### PROPERTY LIST
+class ObjectType(enum.Enum):
+    BL = "BranchingLevel"
+    BS = "BranchSet"
+    BR = "Branch"
+class Property:
+    def __init__(self,name,valueptr,importance,auto=False,full_entry=True):
+        self.name = name
+        self.value = valueptr
+        self.importance = importance
+        self.auto=auto
+        self.full_entry=full_entry
+class Properties:
+    def __init__(self,object=None):
+        self.all = []
+        self.object = object
+        self.BL = [
+            Property("blId",None,1,auto=True),
+            Property("branchSetList",None,0),
+            Property("logicTree",None,0),
+            Property("Class",None,0),
+            Property("file_type",None,0)
+        ]
+        self.BS = [
+            Property("bsId",None,1,auto=True),
+            Property("Internal bsId",None,0),
+            Property("uncertaintyType",None,1,auto=True),
+            Property("applyToTectonicRegionType",None,1),
+            Property("branchLevel",None,0),
+            Property("branchList",None,0),
+            Property("Class",None,0),
+            Property("file_type",None,0)
+        ]
+        self.BR = [
+            Property("bId",None,1,auto=True),
+            Property("Internal bId",None,0),
+            Property("uncertaintyModel",None,1),
+            Property("uncertaintyWeight",None,1),
+            Property("gmpe_table",None,1),
+            Property("branchSet",None,0),
+            Property("Class",None,0),
+            Property("file_type",None,0)
+        ]
+        if object is not None:
+            if object.Class == "branchingLevelC":
+                self.type = ObjectType.BL
+                self.all = [
+                    Property("blId",self.object.blId,1,auto=True),
+                    Property("branchSetList",self.object.branchSetList,0),
+                    Property("logicTree",self.object.logicTree,0),
+                    Property("Class",self.object.Class,0),
+                    Property("file_type",self.object.file_type,0)
+                ]
+            elif object.Class == "branchSetC":
+                self.type = ObjectType.BS
+                self.all = [
+                    Property("bsId",self.object.realBsId,1,auto=True),
+                    Property("Internal bsId",self.object.bsId,0),
+                    Property("uncertaintyType",self.object.uncertaintyType,1,auto=True),
+                    Property("applyToTectonicRegionType",self.object.applyToTectonicRegionType,1),
+                    Property("branchLevel",self.object.branchLevel,0),
+                    Property("branchList",self.object.branchList,0),
+                    Property("Class",self.object.Class,0),
+                    Property("file_type",self.object.file_type,0)
+                ]
+            elif object.Class == "branchC":
+                self.type = ObjectType.BR
+                self.all = [
+                    Property("bId",self.object.realBId,1,auto=True),
+                    Property("Internal bId",self.object.bId,0),
+                    Property("uncertaintyModel",self.object.uncertaintyModel,1),
+                    Property("uncertaintyWeight",self.object.uncertaintyWeight,1),
+                    Property("gmpe_table",self.object.GMPETable,1),
+                    Property("branchSet",self.object.branchSet,0),
+                    Property("Class",self.object.Class,0),
+                    Property("file_type",self.object.file_type,0)
+                ]
+    def getImportance(self,importance,type=None):
+        list = []
+        if self.object == None:
+            if type == ObjectType.BL:
+                for property.value in self.BL.value:
+                    if property.importance == importance:
+                        list.append(property)
+            elif type.value == ObjectType.BS.value:
+                for property in self.BS:
+                    if property.importance == importance:
+                        list.append(property)
+            elif type.value == ObjectType.BR.value:
+                for property in self.BR:
+                    if property.importance == importance:
+                        list.append(property)
+            return list
+        else:
+            for property in self.all:
+                if property.importance == importance:
+                    list.append(property)
+            return list
 
 ######### CLASSES
 # note: realbid/realbsid is the id that appears in the generated xml, whereas just bid/bsid is the id that appears in backend code

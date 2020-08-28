@@ -44,19 +44,18 @@ class Entry:
             self.Frame.pack()
         if self.type == windowObject.ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
-            self.Entry = tk.Entry(self.Frame,variable=stringvar)
+            self.Entry = tk.Entry(self.Frame,textvariable=stringvar)
             if noPack is False:
                 self.Label.pack(side=tk.LEFT,pady=pady)
                 self.Entry.pack(side=tk.LEFT,pady=pady)
         elif self.type == windowObject.FULL_ENTRY:
             self.Label = tk.Label(self.Frame,text=self.label)
-            self.Entry = tk.Entry(self.Frame,variable=stringvar,width=58,justify=tk.CENTER)
+            self.Entry = tk.Entry(self.Frame,textvariable=stringvar,width=58,justify=tk.CENTER)
             if noPack is False:
                 self.Label.pack(pady=pady)
                 self.Entry.pack(fill=tk.X,expand=True,pady=pady,padx=5)
         self.Label.configure(**label_config)
         self.Entry.configure(**entry_config)
-
     def __repr__(self):
         return self.get()
     def destroy(self):
@@ -179,28 +178,32 @@ class AutoObject:
         self.Frame = tk.Frame(self.master)
         self.Frame.pack()
         self.object = None
-
-        def checkButtonF():
-            if self.checkButtonVar.get() == 0:
-                # uncheck
-                if self.object is not None:
-                    self.object.destroy()
-                if _checkbuttoncommand is not None:
-                    _checkbuttoncommand(checked=False)
-                self.checkButtonVar.set(1)
-            elif self.checkButtonVar.get() == 1:
-                # check
-                if objectType == windowObject.ENTRY:
-                    self.object = Entry(self.Frame,**kwargs)
-                elif objectType == windowObject.DROPDOWN:
-                    self.object = Dropdown(self.Frame,**kwargs)
-                if _checkbuttoncommand is not None:
-                    _checkbuttoncommand(checked=True)
-                self.checkButtonVar.set(0)
-        self.checkButton = tk.Checkbutton(self.Frame,text=_checkbuttontext,command=checkButtonF)
+        self.objectType = objectType
+        self.kwargs = kwargs
+        self._checkbuttoncommand = _checkbuttoncommand
+        self.checkButton = tk.Checkbutton(self.Frame,text=_checkbuttontext,command=self.checkButtonF)
         self.checkButton.pack()
         self.checkButton.deselect()
         self.checkButton.invoke()
+    def checkButtonF(self):
+        var = self.checkButtonVar
+        print("var:"+hex(id(self.checkButtonF)))
+        if var.get() == 0:
+            # uncheck
+            if self.object is not None:
+                self.object.destroy()
+            if self._checkbuttoncommand is not None:
+                self._checkbuttoncommand(checked=False)
+            var.set(1)
+        elif var.get() == 1:
+            # check
+            if self.objectType == windowObject.ENTRY:
+                self.object = Entry(self.Frame,**self.kwargs)
+            elif self.objectType == windowObject.DROPDOWN:
+                self.object = Dropdown(self.Frame,**self.kwargs)
+            if self._checkbuttoncommand is not None:
+                self._checkbuttoncommand(checked=True)
+            var.set(0)
     def __repr__(self):
         return self.type
     def destroy(self):
@@ -237,5 +240,5 @@ class SubmitButton:
 if __name__ == "__main__":
     root = tk.Tk()
     test = AutoObject(root,windowObject.DROPDOWN,label="Test:")
-    test2 = Dropdown(root,noLabel=True)
+    test2 = AutoObject(root,windowObject.DROPDOWN,label="Test2:")
     root.mainloop()

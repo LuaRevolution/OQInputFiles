@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "ltEditor"
-#define MyAppVersion "1.5"
+#define MyAppVersion "1.2"
 #define MyAppExeName "ltEditor.exe"
 
 [Setup]
@@ -17,7 +17,7 @@ DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir=D:\Work Stuff\OpenQuake UI\2.0\dist
-OutputBaseFilename=ltEditor-v1.1-installer
+OutputBaseFilename=ltEditor-v1.2-installer
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -29,14 +29,21 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "D:\Work Stuff\OpenQuake UI\2.0\dist\ltEditor.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\Work Stuff\OpenQuake UI\2.0\dist\logo.png"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\Work Stuff\OpenQuake UI\2.0\dist\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\Work Stuff\OpenQuake UI\2.0\dist\1.2\ltEditor.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\Work Stuff\OpenQuake UI\2.0\dist\1.2\config.ini"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+[InstallDelete]
+Type: files; Name: {app}\ltEditor.exe
+Type: files; Name: {app}\logo.png
+Type: files; Name: {app}\icon.ico
+Type: files; Name: {app}\config.ini
+Type: files; Name: {app}
+  
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
