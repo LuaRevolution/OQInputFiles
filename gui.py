@@ -98,13 +98,21 @@ class ViewObject:
                 elif self.file_type == "GMPE":
                     str = "Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.GMPETable,self.ltcobject.uncertaintyWeight)
             self.Label.config(text=str)
-            self.Label.bind("<Enter>", lambda e: self.Label.config(bg="gainsboro"))
-            self.Label.bind("<Leave>", lambda e: self.Label.config(bg=self.label_def))
+            def enter(e):
+                self.Label.config(bg="gainsboro")
+                self.lteditor.rightclickable = False
+                #print(self.lteditor.rightclickable)
+            def leave(e):
+                self.Label.config(bg=self.label_def)
+                self.lteditor.rightclickable = True
+                #print(self.lteditor.rightclickable)
+            self.Label.bind("<Enter>", enter)
+            self.Label.bind("<Leave>", leave)
             self.Label.pack(side=tk.LEFT)
 
             self.add_child_name = add_child_name
 
-            m = tk.Menu(self.master, tearoff=0)
+            m = tk.Menu(self.Label, tearoff=0)
             if type is not ObjectType.BR:
                 m.add_command(label="Add "+add_child_name.value,command=self.addW)
                 m.add_separator()
@@ -112,9 +120,12 @@ class ViewObject:
             m.add_separator()
             m.add_command(label="Delete",command=self.delete)
 
+
             def do_popup(event):
                 try:
-                    m.tk_popup(event.x_root, event.y_root)
+                    self.xpos = event.x_root
+                    self.ypos = event.y_root
+                    popup = m.tk_popup(event.x_root, event.y_root)
                 finally:
                     m.grab_release()
             self.Label.bind("<Button-3>", do_popup)
@@ -132,14 +143,24 @@ class ViewObject:
         self.windowOptions["_values"] = {}
         #gui
         top = tk.Toplevel(self.master)
-        width=200
-        height=80
-        self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
+
         top.resizable(False,False)
         top.iconbitmap(self.lteditor.icon)
         self.windowOptions["top"]=top
         top.title("Add "+self.add_child_name.value)
 
+        if self.add_child_name == ObjectType.BL:
+            width=100
+            height=80
+            self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
+        elif self.add_child_name == ObjectType.BS:
+            width=200
+            height=100
+            self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
+        elif self.add_child_name == ObjectType.BR:
+            width=330
+            height=150
+            self.placeInCenter(width,height,window=top,xpos=self.xpos,ypos=self.ypos)
 
         #properties
         properties = ltc.Properties()
@@ -1693,23 +1714,22 @@ class LtEditor:
         self.view_obj.value.set(self.view_obj.value.get())
 
         # right-click menu
-
-        self.popmenu = None
+        self.rightclickable = True
+        self.ltviewobject = ViewObject(self.master,ObjectType.LT,self.logic_tree,self.file_type,self)
+        self.popmenu = tk.Menu(self.master, tearoff=0)
+        self.popmenu.add_command(label="Add BranchingLevel",command=self.ltviewobject.addW)
 
         def pop(event):
-            try:
-                self.popmenu.destroy()
-            except:
-                pass
-            self.popmenu = tk.Menu(self.master, tearoff=0)
-            lt = ViewObject(self.master,ObjectType.LT,self.logic_tree,self.file_type,self,xpos=event.x_root,ypos=event.y_root)
-            self.popmenu.add_command(label="Add BranchingLevel",command=lt.addW)
+            #self.ltviewobject.xpos = event.x_root
+            #self.ltviewobject.ypos = event.y_root
+            if not self.rightclickable:
+                return False
             try:
                 self.popmenu.tk_popup(event.x_root, event.y_root)
             finally:
                 self.popmenu.grab_release()
 
-        self.master.bind("<Button-3>", pop)
+        #self.master.bind("<Button-3>", pop)
 
         #display
         self.outputArea=None
