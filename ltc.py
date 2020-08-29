@@ -125,7 +125,17 @@ class Properties:
                 if property.importance == importance:
                     list.append(property)
             return list
-
+    def getProperty(self,key,importance=None,type=None):
+        list = []
+        if type is not None:
+            typevar = type
+        else:
+            typevar = self.object.type
+        if importance is not None:
+            list = self.getImportance(importance,type=typevar)
+        for property in list:
+            if property.name == key:
+                return property
 ######### CLASSES
 # note: realbid/realbsid is the id that appears in the generated xml, whereas just bid/bsid is the id that appears in backend code
 class branchC:

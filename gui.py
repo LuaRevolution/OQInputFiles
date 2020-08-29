@@ -68,7 +68,7 @@ class ViewObject:
 
         #---gui
         self.Frame = tk.Frame(self.master)
-        self.Frame.pack(anchor=tk.NW)
+        self.Frame.pack(anchor=tk.NW,padx=5,fill="x")
 
         #canvas
         if self.type is not ObjectType.BL and self.type is not ObjectType.LT:
@@ -86,7 +86,7 @@ class ViewObject:
 
         # label
         if self.type is not ObjectType.LT:
-            self.Label = tk.Label(self.Frame)
+            self.Label = tk.Label(self.Frame,anchor="w")
             self.label_def = self.Label["bg"]
             add_child_name = ObjectType.BL
             str = None
@@ -104,7 +104,7 @@ class ViewObject:
                     str = "Branch (branchId: {})(uncertaintyModel: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.uncertaintyModel,self.ltcobject.uncertaintyWeight)
                 elif self.file_type == "GMPE":
                     str = "Branch (branchId: {})(gmpeTable: {})(uncertaintyWeight: {})".format(self.ltcobject.realBId, self.ltcobject.GMPETable,self.ltcobject.uncertaintyWeight)
-            self.Label.config(text=str)
+            self.Label.config(text=str,width=200)
             def enter(e):
                 self.Label.config(bg="gainsboro")
                 self.lteditor.rightclickable = False
@@ -185,7 +185,7 @@ class ViewObject:
                     self.windowOptions[property.name+"O"] = wim.AutoObject(self.windowOptions["top"],wim.windowObject.ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name],_checkbuttoncommand=lambda checked:top.geometry(""))
                 else:
                     self.windowOptions[property.name+"O"] = wim.Entry(self.windowOptions["top"],type=wim.windowObject.FULL_ENTRY,label=property.name+":",stringvar=self.windowOptions["_values"][property.name])
-        def submit():
+        def submit(properties):
             dict = {}
             for key,stringvar in self.windowOptions["_values"].copy().items():
                 if key == "bsId":
@@ -194,7 +194,7 @@ class ViewObject:
                     dict["realBId"] = stringvar.get()
                 else:
                     dict[key] = stringvar.get()
-                    if dict[key] == "":
+                    if dict[key] == "" and properties.getProperty(key,1,type=self.add_child_name).auto is not True:
                         self.lteditor.createPopup(wtitle="Error",wdescription="Please enter a valid "+key)
                         return 'No '+key
             if self.add_child_name.value == ObjectType.BL.value:
@@ -213,8 +213,9 @@ class ViewObject:
                     dict["realBId"] = None
                 self.ltcobject.addBranch(**dict)
             self.lteditor.outputLogicTree()
+            self.windowOptions["top"].destroy()
 
-        self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",command=submit)
+        self.windowOptions["submitButtonO"] = wim.SubmitButton(self.windowOptions["top"],buttontext="Add",no_destroy=True,command=lambda: submit(properties))
     def editW(self,xpos=None,ypos=None,**kwargs):
         self.windowOptions = {}
         self.windowOptions["_values"] = {}
@@ -405,15 +406,22 @@ class LtEditor:
             text="Job.ini",
             command=lambda: buttonClick(mode="job.ini")
         ).pack() #creates the startmenu. when done with the startmenu, it runs main.
-    def placeInCenter(self, width,height,window=None,place=True): #fixes x,y placement of window
+    def placeInCenter(self,width,height,window=None,place=True,xpos=None,ypos=None,geostring_only=False): #fixes x,y placement of window
         if window is None:
             window=self.master
-        x = (window.winfo_screenwidth() // 2) - (width //2)
-        y = (window.winfo_screenheight() // 2) - (height //2)
-        if place==True:
-            window.geometry("{}x{}+{}+{}".format(width,height,x,y))
+        if xpos is not None and ypos is not None:
+            x = xpos - (width //2)
+            y = ypos - (height //2)
         else:
-            window.geometry("{}x{}".format(width,height))
+            x = (window.winfo_screenwidth() // 2) - (width //2)
+            y = (window.winfo_screenheight() // 2) - (height //2)
+        geostring = "{}x{}+{}+{}".format(width,height,x,y)
+        if geostring_only:
+            return geostring
+        if place==True:
+            window.geometry(geostring)
+        else:
+            window.geometry(geostring)
     def pToOutput(self,text): # print to output
         if self.outputArea == None:
             return False
@@ -430,15 +438,24 @@ class LtEditor:
             file_type=self.file_type
         if viewmode == None:
             viewmode = self.view_obj.value.get()
+
         try:
             self.outputArea.destroy()
-            self.outputScroll.destroy()
-            self.outputAreaHolder.destroy()
         except:
             pass
+        try:
+            self.outputScroll.destroy()
+        except:
+            pass
+        try:
+            self.blankspace.destroy()
+        except:
+            pass
+
         if viewmode == "Simplified":
-            self.outputArea = tk.Frame(self.master)
-            self.outputArea.pack(anchor=tk.NW,padx=5)
+            container = self.master
+            self.outputArea = tk.Frame(container)
+            self.outputArea.pack(anchor=tk.NW)
 
             for a,b in ltobj.blList.copy().items():
                 bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type,self)
@@ -446,6 +463,24 @@ class LtEditor:
                     bs = ViewObject(self.outputArea,ObjectType.BS,l,self.file_type,self,parent=bl)
                     for x,z in l.branchList.copy().items():
                         br = ViewObject(self.outputArea,ObjectType.BR,z,self.file_type,self,parent=bs)
+            #blank space for righclick add branchlevel
+            def do_popup(event):
+                try:
+                    self.xpos2 = event.x_root
+                    self.ypos2 = event.y_root
+                    popup = m.tk_popup(event.x_root, event.y_root)
+                finally:
+                    m.grab_release()
+
+            m = tk.Menu(container,tearoff=0)
+            def addf():
+                self.ltviewobject.xpos = self.xpos2
+                self.ltviewobject.ypos = self.ypos2
+                self.ltviewobject.addW()
+            m.add_command(label="Add BranchingLevel",command=addf)
+            self.blankspace = tk.Frame(container)
+            self.blankspace.pack(fill="both",expand="yes")
+            self.blankspace.bind("<Button-3>", do_popup)
         elif viewmode == "XML":
             self.outputArea = tk.Text(
                 self.master,
@@ -458,12 +493,12 @@ class LtEditor:
             self.outputScroll.pack(side=tk.RIGHT,fill=tk.Y)
             str = ltc.createXML(ltobj)
             self.pToOutput(str)
-    def createPopup(self,wtype="message",wtitle="Popup",wdescription="Description",okfunc=None,yfunc=None,nfunc=None,oktext="Ok",ytext="Yes",ntext="No"): # creates a popup
+    def createPopup(self,wtype="message",wtitle="Popup",wdescription="Description",okfunc=None,yfunc=None,nfunc=None,oktext="Ok",ytext="Yes",ntext="No",xpos=None,ypos=None): # creates a popup
         #two types: message and yn
         top = tk.Toplevel(self.master)
         top.resizable(False,False)
         top.title(wtitle)
-        self.placeInCenter(300,85,window=top)
+        self.placeInCenter(300,85,window=top,xpos=xpos,ypos=ypos)
         frame = tk.Frame(top)
         frame.pack(side=tk.TOP)
         bframe = tk.Frame(top)
