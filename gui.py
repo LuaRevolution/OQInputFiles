@@ -75,7 +75,7 @@ class ViewObject:
             size = 25
             self.CanvasWidth = size+(self.level*size)
             self.Canvas = tk.Canvas(self.Frame,height=size,width=self.CanvasWidth,bg="blue")
-            self.Canvas.config(bg=self.master["bg"])
+            self.Canvas.config(bg=self.master.master.master["background"])
             self.Canvas.pack(side=tk.LEFT)
 
             half = round(size/2)+2 # half of size
@@ -439,11 +439,15 @@ class LtEditor:
         if viewmode == None:
             viewmode = self.view_obj.value.get()
         try:
-            self.container.destroy()
+            self.Canvas.destroy()
         except:
             pass
         try:
-            self.Canvas.destroy()
+            self.scrollbar.destroy()
+        except:
+            pass
+        try:
+            self.container.destroy()
         except:
             pass
         try:
@@ -460,19 +464,18 @@ class LtEditor:
             pass
 
         if viewmode == "Simplified":
-            self.container = tk.Frame(self.master)
-            self.container.pack(fill="both",expand="yes")
-            container = self.container
+            self.container = container = tk.Frame(self.master)
+
             self.Canvas = tk.Canvas(container)
-            self.Canvas.pack(fill="both",expand="yes")
+            self.outputArea = ttk.Frame(self.Canvas)
+            self.outputArea.bind("<Configure>",lambda e: self.Canvas.configure(scrollregion=self.Canvas.bbox("all")))
+            self.scrollbar = ttk.Scrollbar(self.master, orient="vertical", command=self.Canvas.yview)
+            self.Canvas.create_window((0, 0), window=self.outputArea, anchor="nw")
+            self.Canvas.configure(yscrollcommand=self.scrollbar.set)
 
-            self.outputArea = tk.Frame(self.Canvas)
-            self.outputScroll = ttk.Scrollbar(self.Canvas,orient="vertical",command=self.Canvas.yview)
-            self.outputScroll.pack(side=tk.RIGHT,fill="y")
-            self.outputArea.pack(anchor=tk.NW)
-
-            self.Canvas.configure(yscrollcommand=self.outputScroll.set)
-            self.Canvas.bind("<Configure>",lambda e: self.Canvas.configure(scrollregion=self.Canvas.bbox("all")))
+            self.Canvas.pack(side=tk.TOP,fill="both",expand=1,anchor=tk.NW)
+            self.scrollbar.pack(side=tk.RIGHT,fill="y")
+            container.pack(fill="both",expand=1,padx=5)
 
             for a,b in ltobj.blList.copy().items():
                 bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type,self)
@@ -495,7 +498,7 @@ class LtEditor:
                 self.ltviewobject.ypos = self.ypos2
                 self.ltviewobject.addW()
             m.add_command(label="Add BranchingLevel",command=addf)
-            self.blankspace = tk.Frame(self.Canvas)
+            self.blankspace = tk.Frame(container)
             self.blankspace.pack(fill="both",expand="yes")
             self.blankspace.bind("<Button-3>", do_popup)
         elif viewmode == "XML":
