@@ -438,7 +438,14 @@ class LtEditor:
             file_type=self.file_type
         if viewmode == None:
             viewmode = self.view_obj.value.get()
-
+        try:
+            self.container.destroy()
+        except:
+            pass
+        try:
+            self.Canvas.destroy()
+        except:
+            pass
         try:
             self.outputArea.destroy()
         except:
@@ -453,9 +460,19 @@ class LtEditor:
             pass
 
         if viewmode == "Simplified":
-            container = self.master
-            self.outputArea = tk.Frame(container)
+            self.container = tk.Frame(self.master)
+            self.container.pack(fill="both",expand="yes")
+            container = self.container
+            self.Canvas = tk.Canvas(container)
+            self.Canvas.pack(fill="both",expand="yes")
+
+            self.outputArea = tk.Frame(self.Canvas)
+            self.outputScroll = ttk.Scrollbar(self.Canvas,orient="vertical",command=self.Canvas.yview)
+            self.outputScroll.pack(side=tk.RIGHT,fill="y")
             self.outputArea.pack(anchor=tk.NW)
+
+            self.Canvas.configure(yscrollcommand=self.outputScroll.set)
+            self.Canvas.bind("<Configure>",lambda e: self.Canvas.configure(scrollregion=self.Canvas.bbox("all")))
 
             for a,b in ltobj.blList.copy().items():
                 bl = ViewObject(self.outputArea,ObjectType.BL,b,self.file_type,self)
@@ -478,7 +495,7 @@ class LtEditor:
                 self.ltviewobject.ypos = self.ypos2
                 self.ltviewobject.addW()
             m.add_command(label="Add BranchingLevel",command=addf)
-            self.blankspace = tk.Frame(container)
+            self.blankspace = tk.Frame(self.Canvas)
             self.blankspace.pack(fill="both",expand="yes")
             self.blankspace.bind("<Button-3>", do_popup)
         elif viewmode == "XML":
