@@ -468,11 +468,10 @@ class LtEditor:
 
             self.Canvas = tk.Canvas(container)
             self.outputArea = ttk.Frame(self.Canvas)
-            self.outputArea.bind("<Configure>",lambda e: self.Canvas.configure(scrollregion=self.Canvas.bbox("all")))
             self.scrollbar = ttk.Scrollbar(self.master, orient="vertical", command=self.Canvas.yview)
             self.Canvas.create_window((0, 0), window=self.outputArea, anchor="nw")
             self.Canvas.configure(yscrollcommand=self.scrollbar.set)
-
+            self.outputArea.bind("<Configure>",lambda e: self.Canvas.configure(scrollregion=self.Canvas.bbox("all")))
             self.Canvas.pack(side=tk.TOP,fill="both",expand=1,anchor=tk.NW)
             self.scrollbar.pack(side=tk.RIGHT,fill="y")
             container.pack(fill="both",expand=1,padx=5)
@@ -498,9 +497,9 @@ class LtEditor:
                 self.ltviewobject.ypos = self.ypos2
                 self.ltviewobject.addW()
             m.add_command(label="Add BranchingLevel",command=addf)
-            self.blankspace = tk.Frame(container)
-            self.blankspace.pack(fill="both",expand="yes")
-            self.blankspace.bind("<Button-3>", do_popup)
+            #self.blankspace = tk.Frame(self.outputArea)
+            #self.blankspace.pack(fill="both",expand="yes")
+            #self.blankspace.bind("<Button-3>", do_popup)
         elif viewmode == "XML":
             self.outputArea = tk.Text(
                 self.master,
@@ -1761,7 +1760,8 @@ class LtEditor:
         # delete self on toplevel window close
         def onDeletion():
             self.updateConfigFile()
-            self.__del__(wclosed=True)
+            if self.unsavedChanges == True:
+                self.createPopup(wtype="yn",wtitle="Unsaved changes",wdescription="Are you sure you want to exit?\nYou have unsaved changes.",yfunc=lambda:self.__del__(wclosed=True))
         self.master.protocol("WM_DELETE_WINDOW", onDeletion)
         # window size
         width = 700
