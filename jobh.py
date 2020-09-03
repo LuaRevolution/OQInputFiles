@@ -2,6 +2,18 @@ import configparser
 import os
 
 # setup
+frequentlyChanged = [
+    "description", 
+    "calculation_mode",
+    "sites_csv",
+    "reference_vs30_value",
+    "source_model_logic_tree_file",
+    "gsim_logic_tree_file",
+    "poes"
+]
+
+
+
 class configList:
     def __init__(self,list=None):
         self.list = []
@@ -86,7 +98,7 @@ class JobFile:
 
             #calculation
             "source_model_logic_tree_file": configItem("source_model_logic_tree_file","calculation"),
-            "gmpe_logic_tree_file": configItem("gmpe_logic_tree_file","calculation"),
+            "gsim_logic_tree_file": configItem("gsim_logic_tree_file","calculation"),
             "investigation_time": configItem("investigation_time","calculation"),
             "intensity_measure_types_and_levels": configItem("intensity_measure_types_and_levels","calculation"),
             "truncation_level": configItem("truncation_level","calculation"),

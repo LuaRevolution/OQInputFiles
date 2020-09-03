@@ -15,6 +15,7 @@ from pathlib import Path
 import ltc
 import jobh
 import windowItemModule as wim
+import tooltip
 #---core variables---
 root = tk.Tk()
 #config = configparser.ConfigParser()
@@ -1737,6 +1738,15 @@ class LtEditor:
                 sections[section].grid(row=rowCount,column=0,columnspan=2)
                 rowCount = rowCount+1
             self.windowOptions[i]=wim.Entry(itemframe,label=i+":",type=wim.windowObject.FULL_ENTRY,noPack=True,entry_config={"justify":tk.LEFT})
+            hovertext = ""
+            if i in jobh.frequentlyChanged:
+                label1 = self.windowOptions[i].Label
+                label1.config(fg="red")
+                hovertext = "This setting is frequently changed"
+            else:
+                hovertext = "This setting is rarely changed"
+                #print("'{}'".format(i))
+            tooltip.CreateToolTip(self.windowOptions[i].Label,hovertext)
             self.windowOptions[i].Label.grid(row=rowCount,column=0)
             self.windowOptions[i].Entry.grid(row=rowCount,column=1)
             self.windowOptions[i].Entry.bind("<Key>", unsavedBind)
