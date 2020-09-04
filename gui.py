@@ -358,7 +358,7 @@ class LtEditor:
         top = tk.Toplevel(self.tk)
         top.resizable(False,False)
         top.iconbitmap(self.icon)
-        top.title("ltEditor - Select a file type")
+        top.title("OQInputFiles - Select a file type")
         width = 325
         height = 300
         x = (top.winfo_screenwidth() // 2) - (width //2)
@@ -513,7 +513,7 @@ class LtEditor:
             self.outputScroll.pack(side=tk.RIGHT,fill=tk.Y)
             str = ltc.createXML(ltobj)
             self.pToOutput(str)
-    def createPopup(self,wtype="message",wtitle="Popup",wdescription="Description",okfunc=None,yfunc=None,nfunc=None,oktext="Ok",ytext="Yes",ntext="No",xpos=None,ypos=None): # creates a popup
+    def createPopup(self,wtype="message",wtitle="Popup",wdescription="Description",okfunc=None,yfunc=None,nfunc=None,oktext="Ok",ytext="Yes",ntext="No",xpos=None,ypos=None,nodestroy=False): # creates a popup
         #two types: message and yn
         top = tk.Toplevel(self.master)
         top.resizable(False,False)
@@ -535,33 +535,39 @@ class LtEditor:
             nbutton.pack(side=tk.LEFT)
             if yfunc is None:
                 def yfunc():
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 ybutton.configure(command=yfunc)
             else:
                 def yfunc2():
                     yfunc()
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 ybutton.configure(command=yfunc2)
             if nfunc is None:
                 def nfunc():
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 nbutton.configure(command=nfunc)
             else:
                 def nfunc2():
                     nfunc()
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 nbutton.configure(command=nfunc2)
         else:
             button = tk.Button(frame,text=oktext,width=(len(oktext)*3))
             button.pack()
             if okfunc is None:
                 def okfunc():
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 button.configure(command=okfunc)
             else:
                 def okfunc2():
                     okfunc()
-                    top.destroy()
+                    if nodestroy is False:
+                        top.destroy()
                 button.configure(command=okfunc2)
     def newLt(self,file_type=None): # deletes old logictree and creates a new one
         if self.logic_tree is not None:
@@ -579,14 +585,14 @@ class LtEditor:
     def updateWindowTitle(self,unsaved=True): # updates the window title
         if unsaved==True:
             if self.file_path == None:
-                self.master.title("ltEditor - "+self.file_type+" - *")
+                self.master.title("OQInputFiles - "+self.file_type+" - *")
             else:
-                self.master.title("ltEditor - "+self.file_type+" - "+self.file_path+"*")
+                self.master.title("OQInputFiles - "+self.file_type+" - "+self.file_path+"*")
         else:
             if self.file_path == None:
-                self.master.title("ltEditor - "+self.file_type)
+                self.master.title("OQInputFiles - "+self.file_type)
             else:
-                self.master.title("ltEditor - "+self.file_type+" - "+self.file_path)
+                self.master.title("OQInputFiles - "+self.file_type+" - "+self.file_path)
     def readConfigFile(self): # fetches the config value for the key given
         parser = configparser.ConfigParser()
         try:
@@ -909,8 +915,8 @@ class LtEditor:
         self.windowOptions["top"]=top
         top.title("Add BranchingLevel")
         top.iconbitmap(self.icon)
-        width=400
-        height=200
+        width=200
+        height=100
         self.placeInCenter(width,height,window=top)
         #autobl
         def autoBlIdF():
@@ -1695,7 +1701,7 @@ class LtEditor:
         self.master.resizable(False,False)
         self.file_path = None
         # window size
-        width = 600
+        width = 550
         height = 800
 
         #---menus---
@@ -1722,6 +1728,13 @@ class LtEditor:
         def unsavedBind(key):
             self.unsavedChanges=True
             self.updateWindowTitle(unsaved=self.unsavedChanges)
+
+
+        def defaultval():
+            for i,v in self.windowOptions.copy().items():
+                if i in jobh.defaultValues:
+                    self.windowOptions[i].set(jobh.defaultValues[i])
+        self.createPopup(wtitle="Preset Values",wdescription="Use preset values?",wtype="yn",yfunc=defaultval)
 
         #---item creation---
         itemframe = tk.Frame(self.master)
@@ -1763,7 +1776,7 @@ class LtEditor:
         elif self.file_type == "GMPE":
             self.logic_tree = ltc.logicTreeC(file_type="GMPE")
         self.master.deiconify()
-        self.master.title("ltEditor - "+self.file_type)
+        self.master.title("OQInputFiles - "+self.file_type)
         self.master.bind('<Control-Key-s>',self.saveFile)
         self.file_path=None
 
@@ -1771,7 +1784,9 @@ class LtEditor:
         def onDeletion():
             self.updateConfigFile()
             if self.unsavedChanges == True:
-                self.createPopup(wtype="yn",wtitle="Unsaved changes",wdescription="Are you sure you want to exit?\nYou have unsaved changes.",yfunc=lambda:self.__del__(wclosed=True))
+                self.createPopup(wtype="yn",wtitle="Unsaved changes",wdescription="Are you sure you want to exit?\nYou have unsaved changes.",nodestroy=True,yfunc=lambda:self.__del__(wclosed=True))
+            else:
+                self.__del__(wclosed=True)
         self.master.protocol("WM_DELETE_WINDOW", onDeletion)
         # window size
         width = 700
@@ -1802,16 +1817,14 @@ class LtEditor:
 
         # add drop down
         addMainMenu = tk.Menu(menuBar,tearoff=0) # file drop down
-        addBlBsMenu = tk.Menu(addMainMenu,tearoff=0)
         menuBar.add_cascade(label="Add",menu=addMainMenu) # add cascading list to menubar
         # add commands
-        addMainMenu.add_cascade(label="Add BranchingLevel/BranchSet",menu=addBlBsMenu) # bl/bs options
+        addMainMenu.add_command(label="Add BranchingLevel and BranchSet",command=self.addBlBs) # combo
         addMainMenu.add_separator()
-        addBlBsMenu.add_command(label="Add BranchingLevel and BranchSet",command=self.addBlBs) # combo
-        addBlBsMenu.add_separator()
-        addBlBsMenu.add_command(label="Add BranchingLevel",command=self.addBl) # bl
-        addBlBsMenu.add_separator()
-        addBlBsMenu.add_command(label="Add BranchSet",command=self.addBs) # bs
+        addMainMenu.add_command(label="Add BranchingLevel",command=self.addBl) # bl
+        addMainMenu.add_separator()
+        addMainMenu.add_command(label="Add BranchSet",command=self.addBs) # bs
+        addMainMenu.add_separator()
         addMainMenu.add_command(label="Add Branch",command=self.addBr) # branch
 
         # edit drop Dropdown
